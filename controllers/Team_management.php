@@ -149,6 +149,8 @@ class Team_management extends AdminController {
 
         $data['all_months_tasks_data'] = $this->team_management_model->get_monthly_tasks_data($staffId, $month);
 
+        $data['all_afk_data'] = $this->team_management_model->get_monthly_afks($staffId, $month);
+        
         $this->load->view('staff_stats', $data);
     }
 

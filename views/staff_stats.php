@@ -7,13 +7,44 @@
 //    return "{$hours}h {$minutes}m";
 //}
 ?>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css"/>
 
+    <style>
+        .shift-timing {
+    background: linear-gradient(90deg, rgba(255,99,132,0.2) 0%, rgba(255,120,150,0.2) 100%)!important;
+    border-color: rgba(255, 99, 132, 1)!important;
+}
+
+.clock-in-time {
+    background: linear-gradient(90deg, rgba(54,162,235,0.2) 0%, rgba(74,182,255,0.2) 100%)!important;
+    border-color: rgba(54, 162, 235, 1)!important;
+}
+
+.afk-time {
+    background: linear-gradient(90deg, rgba(255,206,86,0.2) 0%, rgba(255,226,106,0.2) 100%)!important;
+    border-color: rgba(255, 206, 86, 1)!important;
+}
+.vis-item {
+    transition: all 0.3s ease-out;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 4px 8px;
+}
+.vis-item:hover {
+    transform: scale(1.02);
+    z-index: 1;  /* Ensure the hovered item overlays other items */
+}
+
+
+    </style>
 <div id="wrapper" class="wrapper">
     <div class="content flex flex-col">
 
         <div class="flex flex-col gap-4 rounded">
         
             <div class="bg-white rounded-lg shadow p-6 mb-8">
+                
+
                 <div class="flex flex-row justify-between">
                     <h2 class="text-2xl font-semibold mb-4">Stats of <?= date("F", mktime(0, 0, 0, $month_this, 1)); ?> of <?= $staff_name_this ?></h2>
 
@@ -111,7 +142,9 @@
                     
                     <!-- Stats per day section -->
                     <div class="bg-white p-6 rounded-lg">
-                    <h2 class="text-2xl font-semibold mb-8">Stats Per Day <span id="stats_daily_title">:: none selected!</span></h2>
+                    <h2 class="text-2xl font-semibold ">Stats Per Day <span id="stats_daily_title">:: none selected!</span></h2>
+
+                    <div id="visualization" class="my-5"></div>
 
                     <!-- Stats cards -->
                     <div class="grid grid-cols-3 gap-6 mb-10">
@@ -514,13 +547,25 @@ function fetchSummary(day){
 
 
 </script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
 <script>
 function fetchDailyInfo(day) {
+
     const staff_id = <?= $staff_id_this; ?> // Replace with the actual staff ID
     const currentDate = new Date();
     const month = <?= $month_this; ?>;
     const year = currentDate.getFullYear();
+
+    const monthStr = month < 10 ? `0${month}` : `${month}`;
+    const dayStr = day < 10 ? `0${day}` : `${day}`;
+
+    const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
+    const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
+
+    // Setting the focus
+    timeline.setWindow(startDate, endDate);
+
+
     $.ajax({
         url: admin_url + 'team_management/fetch_daily_info/',
         type: 'POST',
@@ -699,6 +744,98 @@ function generateAllTasksRows(entries, date) {
     });
     return rows;
 }
+
+<?php
+$vis_js_data = [];
+
+foreach ($monthly_stats as $day_stat) {
+    $day_date = $day_stat['day_date'];
+    
+    // Handle shifts
+    $shift_count = 1;
+    foreach ($day_stat['shifts'] as $shift) {
+        $start_time = $shift['start'];
+        $end_time = $shift['end'];
+        $vis_js_data[] = [
+            'content' => "Shift " . $shift_count . "/" . count($day_stat['shifts']) . " " . $start_time . " to " . $end_time,
+            'start' => date('Y-m-d H:i:s', strtotime("$day_date $start_time")),
+            'end' => date('Y-m-d H:i:s', strtotime("$day_date $end_time")),
+            'type' => 'range',
+            'className' => 'shift-timing',
+            'group' => 1 // Group 1 will contain all shifts
+        ];
+        $shift_count++;
+    }
+
+    // Handle clock in and out times
+    if (isset($day_stat['clock']['in']) && isset($day_stat['clock']['out'])) {
+        $clock_in_times = $day_stat['clock']['in'];
+        $clock_out_times = $day_stat['clock']['out'];
+
+        for ($i = 0; $i < count($clock_in_times); $i++) {
+            $in_time = $clock_in_times[$i];
+            $out_time = $clock_out_times[$i];
+            $vis_js_data[] = [
+                'content' => "Clock In: $in_time - Out: $out_time",
+                'start' => date('Y-m-d H:i:s', strtotime("$day_date $in_time")),
+                'end' => date('Y-m-d H:i:s', strtotime("$day_date $out_time")),
+                'type' => 'range',
+                'className' => 'clock-in-time',
+                'group' => 2  // Group 2 will contain all clock-ins
+            ];
+        }
+    }
+}
+
+$json_vis_js_data = json_encode($vis_js_data);
+?>
+
+
+
+// Create a DataSet (allows two way data-binding)
+const shiftData = <?php echo $json_vis_js_data; ?>;
+    
+
+var items = new vis.DataSet(shiftData);
+
+var all_afk_data = <?= json_encode($all_afk_data) ?>
+
+for (var i = 0; i < all_afk_data.length; i++) {
+    var afkObj = all_afk_data[i];
+    var content = 'AFK';
+    var start_time = afkObj.start_time;
+    var end_time = afkObj.end_time;
+
+    items.add({
+        content: content,
+        start: start_time,
+        end: end_time,
+        type: 'range',
+        className: 'afk-time',
+        group: 3
+    });
+}
+
+// Configuration for the Timeline
+var options = {
+    zoomMin: 1000 * 60 * 60, // one hour in milliseconds
+    zoomMax: 1000 * 60 * 60 * 24 * 31 // 31 days in milliseconds
+};
+
+// Initialize the timeline
+var container = document.getElementById('visualization');
+
+var groups = new vis.DataSet([
+    {id: 1, content: 'Shifts'},
+    {id: 2, content: 'Clock-Ins'},
+    {id: 3, content: 'AFKs'}
+]);
+
+
+var timeline = new vis.Timeline(container, items, options);
+
+
+
 
 </script>
 </body>

@@ -787,7 +787,9 @@ class Team_management_model extends App_Model
         // Insert new shift timings
         foreach ($shift_timings as $day => $shifts) {
             foreach ($shifts as $shift_number => $shift_time) {
-                if(($shift_time['start']) && ($shift_time['end'])){
+
+                if((($shift_time['start']) && ($shift_time['end'])) || $shift_number != 3){
+
                     $this->db->insert(''.db_prefix().'_staff_shifts', [
                         'staff_id' => $staff_id,
                         'month' => $month,
@@ -796,6 +798,7 @@ class Team_management_model extends App_Model
                         'shift_start_time' => ($shift_time['start']) ? $shift_time['start'] : null,
                         'shift_end_time' => ($shift_time['end']) ? $shift_time['end'] : null,
                     ]);
+
                 }
                 
             }
@@ -1125,10 +1128,10 @@ class Team_management_model extends App_Model
     
 
     public function is_on_leave($staff_id, $date) {
-        
+        //return true;
         $shift_timings = $this->get_shift_timings_of_date($date, $staff_id);
 
-        if (empty($shift_timings) || ($shift_timings['first_shift']['start'] == "00:00:00" && $shift_timings['second_shift']['start'] == "00:00:00")) {
+        if (empty($shift_timings) || ($shift_timings['first_shift']['start'] == "00:00:00" && $shift_timings['second_shift']['start'] == "00:00:00") || ( ($shift_timings['first_shift']['start'] == NULL) && ($shift_timings['second_shift']['start'] == NULL) )) {
             return true;
         }else{
     
@@ -1237,7 +1240,7 @@ class Team_management_model extends App_Model
             $shift_timings = [
                 'start' => $shift_start_time,
                 'end' => $shift_end_time,
-                'is_shift_leave' => $this->is_on_leave($staff_id, $shiftDateTime) // Replace 'your_model' with the appropriate model name
+                'is_shift_leave' => $this->is_on_leave($staff_id, $shiftDateTime)
             ];
 
             $grouped_shifts[$day][] =  $shift_timings;
@@ -1357,8 +1360,8 @@ class Team_management_model extends App_Model
             $shift_timings_string = '';
 
             if (isset($stat['shifts'])) {
-                foreach ($stat['shifts'] as $shift) {
 
+                foreach ($stat['shifts'] as $shift) {
                     if($shift['is_shift_leave'] == true){
                         $shiftStr = '<span class="bg-amber-200/50 px-2">Shift Leave</span><br>';
                     }else{
@@ -1367,6 +1370,7 @@ class Team_management_model extends App_Model
 
                     $shift_timings_string .= $shiftStr;
                 }
+                
             }
 
             $stat['shift_timings'] = $shift_timings_string;
@@ -2750,6 +2754,32 @@ class Team_management_model extends App_Model
         return ['status' => $overall_late ? 'late' : 'present', 'shifts' => $late_shifts];
     }
     
+
+    public function get_monthly_afks($staffId, $month, $year = '2023') {
+        // The table name
+        $table_name = 'tbl_staff_status_entries';
+        
+        // Format the month to two digits
+        $formatted_month = str_pad($month, 2, '0', STR_PAD_LEFT);
+
+        // Start and end dates for the given month
+        $start_date = "{$year}-{$formatted_month}-01 00:00:00";
+        $end_date = date('Y-m-t 23:59:59', strtotime("{$year}-{$formatted_month}-01"));
+
+        $this->db->select('*');
+        $this->db->from($table_name);
+        $this->db->where('staff_id', $staffId);
+        $this->db->where('status', 'AFK');  // For AFK statuses. If you want Offline as well, you can modify this.
+        $this->db->where("start_time >=", $start_date);
+        $this->db->where("end_time <=", $end_date);
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            return $query->result();
+        } else {
+            return [];
+        }
+    }
     
 
         
