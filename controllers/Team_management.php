@@ -1898,6 +1898,10 @@ class Team_management extends AdminController {
     //     return $pairs;
     // }
 
+    public function test_late($staff_id, $date){
+        print_r($this->team_management_model->check_staff_late($staff_id, $date));
+    }
+
     public function universalReminders(){
         
         $ch = curl_init();

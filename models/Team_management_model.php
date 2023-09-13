@@ -2680,6 +2680,76 @@ class Team_management_model extends App_Model
         return $this->db->get()->result_array();
     }
     
+
+    public function check_staff_late($staff_id, $date){
+        // First, fetch the shifts for the given staff and date
+        $query = "SELECT * FROM tbl_staff_shifts WHERE staff_id = ? AND YEAR = YEAR(?) AND month = MONTH(?) AND day = DAY(?) ORDER BY shift_number ASC";
+        $shifts = $this->db->query($query, [$staff_id, $date, $date, $date])->result();
+        
+        // Fetch clock_in times for the given staff and date
+        $query = "SELECT * FROM tbl_staff_time_entries WHERE staff_id = ? AND DATE(clock_in) = ? ORDER BY clock_in ASC";
+        $entries = $this->db->query($query, [$staff_id, $date])->result();
+        
+        $late_shifts = [];
+        $overall_late = false;
+    
+        foreach ($shifts as $index => $shift) {
+            $shift_start = new DateTime($date . ' ' . $shift->shift_start_time);
+            $shift_end = new DateTime($date . ' ' . $shift->shift_end_time);
+            
+            $shift_start_def = clone $shift_start;
+            
+            $grace_period = new DateInterval('PT30M');
+            $shift_start->add($grace_period);
+
+           
+    
+            if (isset($entries[$index])) {
+                $clock_in = new DateTime($entries[$index]->clock_in);
+                $clock_out = isset($entries[$index]->clock_out) ? new DateTime($entries[$index]->clock_out) : null;
+                $is_direct = true;
+            } else {
+                // In case of consecutive shifts without clock_out, use the last clock_in and clock_out
+                if(end($entries)->clock_in){
+                    $clock_in = new DateTime(end($entries)->clock_in);
+                    $clock_out = isset(end($entries)->clock_out) ? new DateTime(end($entries)->clock_out) : new DateTime();
+                    $is_direct = false;
+                }else{
+                    return ['status' => 'absent'];
+                }
+                
+            }
+            
+            $late = $clock_in > $shift_start;
+
+            if($is_direct){
+                $difference = $clock_in->getTimestamp() - $shift_start_def->getTimestamp();
+            }else{
+                $difference = 'Consecutive Shift';
+            }
+            
+    
+            // Check the special case where a staff member was already clocked in during the start of the next consecutive shift
+
+            if (!$is_direct && $clock_out && ($clock_out < $shift_start)) {
+                // $late = $late && !($clock_in <= $shift_start && $clock_out >= $shift_start);
+                $late_shifts[] = ['status' => 'absent', 'shift' => $shift->shift_number];
+            }else{
+
+                if ($late) {
+                    $overall_late = true;
+
+                    $late_shifts[] = ['status' => 'late', 'shift' => $shift->shift_number, 'difference' => $difference];
+                } else {
+                    $late_shifts[] = ['status' => 'present', 'shift' => $shift->shift_number, 'difference' => $difference];
+                }
+
+            }
+        }
+
+        return ['status' => $overall_late ? 'late' : 'present', 'shifts' => $late_shifts];
+    }
+    
     
 
         
