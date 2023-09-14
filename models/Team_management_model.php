@@ -1280,12 +1280,13 @@ class Team_management_model extends App_Model
 
         $total_shifts = 0;
         $sum_difference = 0;
-
+        
         foreach ($data as &$stat) {
             $day = $stat['day'];
             $total_clock_in_time = 0;
             $total_shift_duration = 0;
             $total_task_time = 0;
+            
     
             // Calculate total_clock_in_time
             $total_clock_in_time = $this->get_day_clocked_in_time($staff_id, $day, $current_month, $current_year);
@@ -1406,6 +1407,7 @@ class Team_management_model extends App_Model
             $date = date('Y-m-d', $timestampDay);
 
             $stat['day_date'] = $date;
+            $stat['status'] = $this->check_staff_late($staff_id,$date);
         }
 
         $max_acceptable_difference = 10 * 60 * 60;

@@ -111,6 +111,7 @@
                                     Day</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift Timings</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Times Clocked In</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time Clocked In</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Shift Time</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time on Tasks</th>
@@ -123,6 +124,7 @@
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['day_date'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['shift_timings'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['clock_times'] ?></td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['status']['status']; ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_clock_in_time'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_shift_duration'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_task_time'] ?></td>
