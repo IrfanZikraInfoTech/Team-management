@@ -209,23 +209,63 @@ function formatShift($shiftNumer)
             <h2 class="text-xl font-semibold mb-4">Staff Members</h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead>
+                    <thead class="bg-gray-50">
                         <tr class="text-sm font-medium text-gray-700">
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Name</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Shift</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Work</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Task Rate</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Summary</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Shift Timings</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Times Clocked in</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                 Total Shift Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Total Time Clocked in</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Task Rate</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Summary</th>
                         </tr>
                     </thead>
 
                     <tbody class="bg-white divide-y divide-gray-200 text-sm text-gray-600">
                     
-                    <?php foreach ($report_data['all_staff'] as $staff): ?>
+                    <?php foreach ($report_data['all_staff'] as $staff): 
+                        //   var_dump($staff);
+                     var_dump($report_data['clock_times']);
+                        ?>
                         <tr class="border-solid border-b border-gray-200">
                             <td class="border px-4 py-2 flex flex-row gap-2 items-center">
                                 <?= $staff['firstname'] . ' ' . $staff['lastname'] ?>
                                 <?= staff_profile_image($staff['staffid'], ['h-8', 'w-8', 'rounded-full'], 'thumb') ?>
+                            </td>
+                            <td class="border px-4 py-2">
+                                <?php 
+                                $staff_id = $staff['staffid'];
+                                if (isset($shift_timings_daywise[$staff_id])) {
+                                    $time_strings = [];
+                                    foreach ($shift_timings_daywise[$staff_id] as $timing) {
+                                        $start_time = date("g:i A", strtotime($timing['start_time']));
+                                        $end_time = date("g:i A", strtotime($timing['end_time']));
+                                        $time_strings[] = $start_time . ' - ' . $end_time;
+                                    }
+                                    echo implode('<br>', $time_strings);
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </td>
+                            <td class="border px-4 py-2">
+                                <?php
+                                $staff_id = $staff['staffid'];
+                                if (isset($report_data['clock_times'][$staff_id])) {
+                                    // echo $report_data['clock_times'][$staff_id];
+                                    echo($report_data['clock_times']);
+
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
                             </td>
                             <td class="border px-4 py-2">
                                 <?= convertSecondsToRoundedTime($staff['total_shift_timings']) ?>

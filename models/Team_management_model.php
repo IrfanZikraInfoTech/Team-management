@@ -1206,7 +1206,7 @@ class Team_management_model extends App_Model
         return $result->total_duration;
     }
     
-
+// work stats
     public function get_monthly_stats($staff_id, $month) {
         $current_month = $month;
         $current_year = date('Y');
@@ -1699,7 +1699,7 @@ class Team_management_model extends App_Model
 
         return $daily_stats;
     }
-
+// daily report daata 
     public function get_daily_report_data($month, $day)
     {
         $date = date('Y') . '-' . $month . '-' . $day;
@@ -1720,8 +1720,63 @@ class Team_management_model extends App_Model
         $query = $this->db->get();
         $report_data['total_loggable_hours'] = $query->row()->total_loggable_hours;
 
-
+        // Fetching day-wise shifts
+         $this->db->select('*');
+        $this->db->from(db_prefix() . '_staff_shifts');
+        $this->db->where('month', date('m', strtotime($date)));
+        $this->db->where('day', date('d', strtotime($date)));
+        $query = $this->db->get();
+        $daywise_shifts = $query->result_array();
         
+        // Processing day-wise shifts
+
+        // $daywise_shift_data = [];
+        // foreach ($daywise_shifts as $shift) {
+        //     $staff_id = $shift['staff_id'];
+        //     $daywise_shift_data[$staff_id]['start_time'] = $shift['shift_start_time'];
+        //     $daywise_shift_data[$staff_id]['end_time'] = $shift['shift_end_time'];
+        // }
+        // $report_data['shift_timings_daywise'] = $daywise_shift_data;
+        $daywise_shift_data = [];
+        foreach ($daywise_shifts as $shift) {
+            $staff_id = $shift['staff_id'];
+            $daywise_shift_data[$staff_id][] = [
+                'start_time' => $shift['shift_start_time'],
+                'end_time' => $shift['shift_end_time']
+            ];
+        }
+        $report_data['shift_timings_daywise'] = $daywise_shift_data;
+
+        // End of processing day-wise shifts
+
+        // times clock in
+        $this->db->select('DATE(clock_in) as date, clock_in, clock_out');
+        $this->db->from(db_prefix() . '_staff_time_entries');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('DATE(clock_in)', $date); // Fetch records for specific date
+        $clock_ins = $this->db->get()->result_array();
+        
+        $grouped_clock = [];
+        foreach ($clock_ins as $clock_in) {
+            $day = date('j', strtotime($clock_in['date']));
+            if (!isset($grouped_clock[$day])) {
+                $grouped_clock[$day] = [];
+            }
+            $grouped_clock[$day]['in'][] = date('h:i A', strtotime($clock_in['clock_in']));
+            if (isset($clock_in['clock_out'])) {
+                $grouped_clock[$day]['out'][] = date('h:i A', strtotime($clock_in['clock_out']));
+            }
+        }
+        
+        $clock_times = [];
+        for ($i = 0; $i < count($clock_ins); $i++) {
+            if (isset($clock_ins[$i]['clock_in']) && isset($clock_ins[$i]['clock_out'])) {
+                $clock_times[] = date('h:i A', strtotime($clock_ins[$i]['clock_in'])) . ' - ' . date('h:i A', strtotime($clock_ins[$i]['clock_out']));
+            }
+        }
+        $report_data['clock_times'] = implode('<br> ', $clock_times);
+        
+
         // Actual Total Logged in Time
         $this->db->select('*');
         $query = $this->db->get(db_prefix() . 'staff');

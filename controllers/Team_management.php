@@ -104,8 +104,9 @@ class Team_management extends AdminController {
     public function staff_stats($staffId, $month)
     {
         $data['staff_id'] = $staffId;
-
+        // state's data 
         $data['monthly_stats'] = $this->team_management_model->get_monthly_stats($staffId, $month)['data'];
+       
         $data['monthly_total_clocked_time'] = $this->team_management_model->get_monthly_stats($staffId, $month)['monthly_total_clocked_time'];
         $data['monthly_shift_duration'] = $this->team_management_model->get_monthly_stats($staffId, $month)['monthly_shift_duration'];
         $data['punctuality_rate'] = $this->team_management_model->get_monthly_stats($staffId, $month)['punctuality_rate'];
@@ -154,33 +155,62 @@ class Team_management extends AdminController {
         $this->load->view('staff_stats', $data);
     }
 
+    // public function daily_reports($month, $day)
+    // {
+        
+    //     $report_data = $this->team_management_model->get_daily_report_data($month, $day);
+
+    //     // Pass the data to your view
+    //     $data['report_data'] = $report_data;
+
+    //     $day_summary = $this->team_management_model->get_day_summary(date('Y') . '-' . $month . '-' . $day);
+    //     $data['day_summary'] = $day_summary ? $day_summary->summary : '';
+
+    //     if (!has_permission('team_management', '', 'admin') && !$day_summary) {
+    //         //access_denied('No Report Found!');
+    //     }
+        
+    //     $data['date'] = date('Y') . '-' . $month . '-' . $day;
+
+    //     $summaries = $this->team_management_model->get_staff_summaries(date('Y') . '-' . $month . '-' . $day);
+
+    //     // Pass the summaries to the view
+    //     $data['summaries'] = $summaries;
+
+    //     $data['thisMonth'] = $month;
+    //     $data['thisDay'] = $day;
+
+    //     $this->load->view('daily_reports', $data);
+    // }
     public function daily_reports($month, $day)
     {
-        
         $report_data = $this->team_management_model->get_daily_report_data($month, $day);
-
-        // Pass the data to your view
         $data['report_data'] = $report_data;
-
+    
         $day_summary = $this->team_management_model->get_day_summary(date('Y') . '-' . $month . '-' . $day);
         $data['day_summary'] = $day_summary ? $day_summary->summary : '';
-
+    
         if (!has_permission('team_management', '', 'admin') && !$day_summary) {
             //access_denied('No Report Found!');
         }
+    
+        $data['shift_timings_daywise'] = $report_data['shift_timings_daywise'] ?? [];
+        $data['clock_times'] = $report_data['clock_times'] ?? '';
+      
+
         
         $data['date'] = date('Y') . '-' . $month . '-' . $day;
-
+    
         $summaries = $this->team_management_model->get_staff_summaries(date('Y') . '-' . $month . '-' . $day);
-
-        // Pass the summaries to the view
         $data['summaries'] = $summaries;
-
+    
         $data['thisMonth'] = $month;
         $data['thisDay'] = $day;
-
+    
         $this->load->view('daily_reports', $data);
     }
+    
+
 
     public function fetch_staff_day_summaries()
     {
