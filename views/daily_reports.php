@@ -232,7 +232,7 @@ function formatShift($shiftNumer)
                     
                     <?php foreach ($report_data['all_staff'] as $staff): 
                         //   var_dump($staff);
-                     var_dump($report_data['clock_times']);
+                    //  var_dump($report_data['clock_times']);
                         ?>
                         <tr class="border-solid border-b border-gray-200">
                             <td class="border px-4 py-2 flex flex-row gap-2 items-center">
@@ -412,19 +412,46 @@ function formatShift($shiftNumer)
     $('#generate-summary').on('click', function () {
     alert_float("info", "Generating summary...");
 
-    <?php
+    // <?php
     
-    $most_clock = ($report_data['most_clocked_in_staff_member']) ? ($report_data['most_clocked_in_staff_member']['firstname'] . ' ' . $report_data['most_clocked_in_staff_member']['lastname']) : 'None';
-    $most_eff = ($report_data['most_eff_staff_member']) ? $report_data['most_eff_staff_member']->firstname . ' ' . $report_data['most_eff_staff_member']->lastname : 'None';
+    // $most_clock = ($report_data['most_clocked_in_staff_member']) ? ($report_data['most_clocked_in_staff_member']['firstname'] . ' ' . $report_data['most_clocked_in_staff_member']['lastname']) : 'None';
+    // $most_eff = ($report_data['most_eff_staff_member']) ? $report_data['most_eff_staff_member']->firstname . ' ' . $report_data['most_eff_staff_member']->lastname : 'None';
 
-    $on_timers = $report_data['on_timers'];
-    $on_timers_names = array_map(function($timer) { return $timer->firstname.' '.$timer->lastname; }, $on_timers);
+    // $on_timers = $report_data['on_timers'];
+    // $on_timers_names = array_map(function($timer) { return $timer->firstname.' '.$timer->lastname; }, $on_timers);
+    // $on_timers_string = implode(', ', $on_timers_names);
+
+    // $late_timers = $report_data['late_joiners'];
+    // $late_joiners_names = array_map(function($joiner) { return $joiner->firstname.' '.$joiner->lastname; }, $late_timers);
+    // $late_joiners_string = implode(', ', $late_joiners_names);
+    // ?>
+
+<?php
+    $most_clock = 'None';
+    if (isset($report_data['most_clocked_in_staff_member'])) {
+        $mcism = $report_data['most_clocked_in_staff_member'];
+        $most_clock = (isset($mcism['firstname']) ? $mcism['firstname'] : '') . ' ' . (isset($mcism['lastname']) ? $mcism['lastname'] : '');
+    }
+
+    $most_eff = 'None';
+    if (isset($report_data['most_eff_staff_member'])) {
+        $mesm = $report_data['most_eff_staff_member'];
+        $most_eff = (isset($mesm->firstname) ? $mesm->firstname : '') . ' ' . (isset($mesm->lastname) ? $mesm->lastname : '');
+    }
+
+    $on_timers = $report_data['on_timers'] ?? [];
+    $on_timers_names = array_map(function($timer) {
+        return (isset($timer->firstname) ? $timer->firstname : '') . ' ' . (isset($timer->lastname) ? $timer->lastname : '');
+    }, $on_timers);
     $on_timers_string = implode(', ', $on_timers_names);
 
-    $late_timers = $report_data['late_joiners'];
-    $late_joiners_names = array_map(function($joiner) { return $joiner->firstname.' '.$joiner->lastname; }, $late_timers);
+    $late_timers = $report_data['late_joiners'] ?? [];
+    $late_joiners_names = array_map(function($joiner) {
+        return (isset($joiner->firstname) ? $joiner->firstname : '') . ' ' . (isset($joiner->lastname) ? $joiner->lastname : '');
+    }, $late_timers);
     $late_joiners_string = implode(', ', $late_joiners_names);
-    ?>
+?>
+
 
     $.ajax({
         url: admin_url + 'team_management/generate_daily_summary',
