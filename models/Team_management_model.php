@@ -792,6 +792,7 @@ class Team_management_model extends App_Model
 
                     $this->db->insert(''.db_prefix().'_staff_shifts', [
                         'staff_id' => $staff_id,
+                        'Year' => date("Y"),
                         'month' => $month,
                         'day' => $day,
                         'shift_number' => $shift_number,
@@ -1408,6 +1409,8 @@ class Team_management_model extends App_Model
 
             $stat['day_date'] = $date;
             $stat['status'] = $this->check_staff_late($staff_id,$date);
+
+            
         }
 
         $max_acceptable_difference = 10 * 60 * 60;
@@ -1751,33 +1754,6 @@ class Team_management_model extends App_Model
 
         // End of processing day-wise shifts
 
-        // times clock in
-        $this->db->select('DATE(clock_in) as date, clock_in, clock_out');
-        $this->db->from(db_prefix() . '_staff_time_entries');
-        $this->db->where('staff_id', $staff_id);
-        $this->db->where('DATE(clock_in)', $date); // Fetch records for specific date
-        $clock_ins = $this->db->get()->result_array();
-        
-        $grouped_clock = [];
-        foreach ($clock_ins as $clock_in) {
-            $day = date('j', strtotime($clock_in['date']));
-            if (!isset($grouped_clock[$day])) {
-                $grouped_clock[$day] = [];
-            }
-            $grouped_clock[$day]['in'][] = date('h:i A', strtotime($clock_in['clock_in']));
-            if (isset($clock_in['clock_out'])) {
-                $grouped_clock[$day]['out'][] = date('h:i A', strtotime($clock_in['clock_out']));
-            }
-        }
-        
-        $clock_times = [];
-        for ($i = 0; $i < count($clock_ins); $i++) {
-            if (isset($clock_ins[$i]['clock_in']) && isset($clock_ins[$i]['clock_out'])) {
-                $clock_times[] = date('h:i A', strtotime($clock_ins[$i]['clock_in'])) . ' - ' . date('h:i A', strtotime($clock_ins[$i]['clock_out']));
-            }
-        }
-        $report_data['clock_times'] = implode('<br> ', $clock_times);
-        
 
         // Actual Total Logged in Time
         $this->db->select('*');
@@ -1795,7 +1771,34 @@ class Team_management_model extends App_Model
         
         foreach ($all_staff_global as &$staff) {
             $staff_id = $staff['staffid'];
-        
+
+            // times clock in
+            $this->db->select('DATE(clock_in) as date, clock_in, clock_out');
+            $this->db->from(db_prefix() . '_staff_time_entries');
+            $this->db->where('staff_id', $staff_id);
+            $this->db->where('DATE(clock_in)', $date); // Fetch records for specific date
+            $clock_ins = $this->db->get()->result_array();
+            
+            $grouped_clock = [];
+            foreach ($clock_ins as $clock_in) {
+                $day = date('j', strtotime($clock_in['date']));
+                if (!isset($grouped_clock[$day])) {
+                    $grouped_clock[$day] = [];
+                }
+                $grouped_clock[$day]['in'][] = date('h:i A', strtotime($clock_in['clock_in']));
+                if (isset($clock_in['clock_out'])) {
+                    $grouped_clock[$day]['out'][] = date('h:i A', strtotime($clock_in['clock_out']));
+                }
+            }
+            
+            $clock_times = [];
+            for ($i = 0; $i < count($clock_ins); $i++) {
+                if (isset($clock_ins[$i]['clock_in']) && isset($clock_ins[$i]['clock_out'])) {
+                    $clock_times[] = date('h:i A', strtotime($clock_ins[$i]['clock_in'])) . ' - ' . date('h:i A', strtotime($clock_ins[$i]['clock_out']));
+                }
+            }
+            $staff['clock_times'] = implode('<br> ', $clock_times);
+            
             // Get total time within range
             $total_time = $this->get_total_time_of_date($staff_id, $date);
             $staff['total_logged_in_time'] = $total_time;
@@ -2743,9 +2746,12 @@ class Team_management_model extends App_Model
     
 
     public function check_staff_late($staff_id, $date){
+
+
         // First, fetch the shifts for the given staff and date
-        $query = "SELECT * FROM tbl_staff_shifts WHERE staff_id = ? AND YEAR = YEAR(?) AND month = MONTH(?) AND day = DAY(?) ORDER BY shift_number ASC";
+        $query = "SELECT * FROM tbl_staff_shifts WHERE staff_id = ? AND Year = YEAR(?) AND month = MONTH(?) AND day = DAY(?) ORDER BY shift_number ASC";
         $shifts = $this->db->query($query, [$staff_id, $date, $date, $date])->result();
+
         
         // Fetch clock_in times for the given staff and date
         $query = "SELECT * FROM tbl_staff_time_entries WHERE staff_id = ? AND DATE(clock_in) = ? ORDER BY clock_in ASC";
@@ -2753,6 +2759,10 @@ class Team_management_model extends App_Model
         
         $late_shifts = [];
         $overall_late = false;
+
+        if(count($entries) <= 0){
+            return ['status' => 'absent'];
+        }
     
         foreach ($shifts as $index => $shift) {
             $shift_start = new DateTime($date . ' ' . $shift->shift_start_time);
@@ -2771,14 +2781,10 @@ class Team_management_model extends App_Model
                 $is_direct = true;
             } else {
                 // In case of consecutive shifts without clock_out, use the last clock_in and clock_out
-                if(end($entries)->clock_in){
-                    $clock_in = new DateTime(end($entries)->clock_in);
-                    $clock_out = isset(end($entries)->clock_out) ? new DateTime(end($entries)->clock_out) : new DateTime();
-                    $is_direct = false;
-                }else{
-                    return ['status' => 'absent'];
-                }
-                
+               $clock_in = new DateTime(end($entries)->clock_in);
+               $clock_out = isset(end($entries)->clock_out) ? new DateTime(end($entries)->clock_out) :new DateTime();
+               $is_direct = false;
+    
             }
             
             $late = $clock_in > $shift_start;
@@ -2795,6 +2801,7 @@ class Team_management_model extends App_Model
             if (!$is_direct && $clock_out && ($clock_out < $shift_start)) {
                 // $late = $late && !($clock_in <= $shift_start && $clock_out >= $shift_start);
                 $late_shifts[] = ['status' => 'absent', 'shift' => $shift->shift_number];
+                
             }else{
 
                 if ($late) {
@@ -2804,11 +2811,15 @@ class Team_management_model extends App_Model
                 } else {
                     $late_shifts[] = ['status' => 'present', 'shift' => $shift->shift_number, 'difference' => $difference];
                 }
-
+                
             }
+            
         }
 
-        return ['status' => $overall_late ? 'late' : 'present', 'shifts' => $late_shifts];
+        
+
+        $status = $overall_late ? 'late' : 'present';
+        return ['status' => $status, 'shifts' => $late_shifts];
     }
     
 

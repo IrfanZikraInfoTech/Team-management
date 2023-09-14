@@ -231,8 +231,6 @@ function formatShift($shiftNumer)
                     <tbody class="bg-white divide-y divide-gray-200 text-sm text-gray-600">
                     
                     <?php foreach ($report_data['all_staff'] as $staff): 
-                        //   var_dump($staff);
-                    //  var_dump($report_data['clock_times']);
                         ?>
                         <tr class="border-solid border-b border-gray-200">
                             <td class="border px-4 py-2 flex flex-row gap-2 items-center">
@@ -258,9 +256,9 @@ function formatShift($shiftNumer)
                             <td class="border px-4 py-2">
                                 <?php
                                 $staff_id = $staff['staffid'];
-                                if (isset($report_data['clock_times'][$staff_id])) {
-                                    // echo $report_data['clock_times'][$staff_id];
-                                    echo($report_data['clock_times']);
+                                if (isset($staff['clock_times'])) {
+
+                                    echo($staff['clock_times']);
 
                                 } else {
                                     echo 'N/A';
