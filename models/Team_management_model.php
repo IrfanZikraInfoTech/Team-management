@@ -131,13 +131,23 @@ class Team_management_model extends App_Model
         $timers->totalOngoingTasks = $this->get_ongoing_tasks();
         $maxTasksCompleted = $this->get_staff_with_most_tasks_completed_today();
 
-        if($maxTasksCompleted){
-            $timers->maxTasksCompletedName = $maxTasksCompleted->lastname;
-            $timers->maxTasksCompletedId = $maxTasksCompleted->staffid;
-        }else{
+        if(isset($maxTasksCompleted)){
+            if(isset($maxTasksCompleted->lastname)) {
+                $timers->maxTasksCompletedName = $maxTasksCompleted->lastname;
+            } else {
+                $timers->maxTasksCompletedName = "Unknown";
+            }
+            
+            if(isset($maxTasksCompleted->staffid)) {
+                $timers->maxTasksCompletedId = $maxTasksCompleted->staffid;
+            } else {
+                $timers->maxTasksCompletedId = null;
+            }
+        } else {
             $timers->maxTasksCompletedName = "None :(";
             $timers->maxTasksCompletedId = null;
         }
+        
 
         $maxHours = $this->get_staff_with_highest_today_live_timer();
         if($maxHours){
@@ -1409,6 +1419,38 @@ class Team_management_model extends App_Model
 
             $stat['day_date'] = $date;
             $stat['status'] = $this->check_staff_late($staff_id,$date);
+            $tasks = $this->team_management_model->get_tasks_by_staff_member($staff_id);
+            $total_tasks = 0;
+            $total_completed_tasks = 0;
+
+            $total_all_tasks = 0;
+            $completed_tasks = 0;
+            $today = $date;
+        
+            foreach ($tasks as $task) {
+
+                $dueConsideration = ($task->duedate) ? $task->duedate : date("Y-m-d", strtotime($task->dateadded));
+                $startConsideration = ($task->startdate) ? $task->startdate : date("Y-m-d", strtotime($task->dateadded));
+
+                if (
+                    (strtotime($startConsideration) <= strtotime($today) && strtotime($dueConsideration) >= strtotime($today)) 
+                    || 
+                    ($task->status != 5)
+                )
+                {
+                    $total_tasks++;
+                    if ($task->status == 5) {
+                        $completed_tasks++;
+                    }
+                }
+            }
+        
+            $task_rate_percentage = $total_tasks > 0 ? round(($completed_tasks / $total_tasks) * 100) : 0;
+            $task_rate = $completed_tasks . '/' . $total_tasks . ' (' . $task_rate_percentage . '%)';
+            $stat['task_rate'] = $task_rate;
+
+            $total_all_tasks += $total_tasks;
+            $total_completed_tasks += $completed_tasks;
 
             
         }
@@ -2068,6 +2110,9 @@ class Team_management_model extends App_Model
         $report_data['all_staff'] = $all_staff_global;
         
 
+        // Initialize the variable before using it
+        $most_eff_staff_member = array(); // or some default value suitable for your logic
+
         $most_eff_staff_member = (object) $most_eff_staff_member;
         if(!$most_eff_staff_member) {
             $most_eff_staff_member = null;
@@ -2562,8 +2607,10 @@ class Team_management_model extends App_Model
                 
                 $tasks[$index]['Completed_Date'] = date("Y-m-d", strtotime($tasks[$index]['Completed_Date']));
                 
-                $tasks[$index]['Days_Offset'] = (date("d", strtotime($tasks[$index]['Completed_Date']) - strtotime($tasks[$index]['duedate'])) - 1) . ' days';
-            }else{
+                if (isset($tasks[$index]['Completed_Date'], $tasks[$index]['duedate']) && ($completedDate = strtotime($tasks[$index]['Completed_Date'])) !== false && ($dueDate = strtotime($tasks[$index]['duedate'])) !== false) {
+                    $tasks[$index]['Days_Offset'] = (date("d", $completedDate - $dueDate) - 1) . ' days';
+                }
+                }else{
                 $tasks[$index]['Days_Offset'] = '';
             }
 

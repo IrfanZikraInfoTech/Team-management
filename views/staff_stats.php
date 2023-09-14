@@ -115,6 +115,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time Clocked In</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Shift Time</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time on Tasks</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task Rate</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -128,6 +129,7 @@
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_clock_in_time'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_shift_duration'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_task_time'] ?></td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['task_rate'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 flex flex-row gap-2">
                                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="fetchDailyInfo(<?= $stat['day'] ?>)"><i class="fa fa-chart-bar"></i></button>
                                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="fetchSummary(<?= $stat['day'] ?>)"><i class="fa fa-list-alt"></i></button>
@@ -317,24 +319,20 @@
                             <?php foreach ($all_months_tasks as $task): ?>
 
                                 <?php
-                                if($task['Completed_Date']){
-                                    if(strtotime($task['duedate']) >= strtotime($task['Completed_Date']))
-                                    {
-                                        $taskBG = 'bg-emerald-100/70';
-                                    }else{
-                                        $taskBG = 'bg-red-100/70';
+                                    if (isset($task['Completed_Date'])) {
+                                        if (isset($task['duedate']) && strtotime($task['duedate']) >= strtotime($task['Completed_Date'])) {
+                                            $taskBG = 'bg-emerald-100/70';
+                                        } else {
+                                            $taskBG = 'bg-red-100/70';
+                                        }
+                                    } else {
+                                        if (isset($task['duedate']) && strtotime($task['duedate']) >= strtotime(date("Y-m-d"))) {
+                                            $taskBG = 'bg-white';
+                                        } else {
+                                            $taskBG = 'bg-red-100/70';
+                                        }
                                     }
-                                }else{
-                                    if(strtotime($task['duedate']) >= strtotime(date("Y-m-d")))
-                                    {
-                                        $taskBG = 'bg-white';
-                                    }else{
-                                        $taskBG = 'bg-red-100/70';
-                                    }
-                                }
-                                
                                 ?>
-
                                 <tr class="hover:bg-gray-100 transition-all <?= $taskBG?>">
 
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['task_id'] ?></td>
@@ -354,7 +352,7 @@
 
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['Total_Time_Taken'] ?></td>
 
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['Days_Offset'] ?></td>
+                                    <!-- <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['Days_Offset'] ?></td> -->
 
                                 </tr>
                             <?php endforeach; ?>

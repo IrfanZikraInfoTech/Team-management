@@ -888,7 +888,7 @@ class Team_management extends AdminController {
             'text' => $message,
         );
     
-        $threadWebhookUrl = "${webhookUrl}&threadKey=${threadKey}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD";
+        $threadWebhookUrl = "{$webhookUrl}&threadKey={$threadKey}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD";
     
         curl_setopt($ch, CURLOPT_URL, $threadWebhookUrl);
         curl_setopt($ch, CURLOPT_POST, 1);
@@ -909,12 +909,12 @@ class Team_management extends AdminController {
         }
 
         $today = date("dmY");
-        $workingHoursThreadKey = "workingHours-${today}";
-        $shiftsThreadKey = "shifts-${today}";
-        $afkThreadKey = "afk-${today}";
-        $tasksAllThreadKey = "tasks-allocation-${today}";
-        $tasksActThreadKey = "tasks-activity-${today}";
-        $eosThreadKey = "eos-${today}";
+        $workingHoursThreadKey = "workingHours-{$today}";
+        $shiftsThreadKey = "shifts-{$today}";
+        $afkThreadKey = "afk-{$today}";
+        $tasksAllThreadKey = "tasks-allocation-{$today}";
+        $tasksActThreadKey = "tasks-activity-{$today}";
+        $eosThreadKey = "eos-{$today}";
 
         $today = date("d/m/Y");
 
@@ -927,17 +927,17 @@ class Team_management extends AdminController {
 
 
 
-        echo $this->create_thread($hourAlerts, $shiftsThreadKey, "--- 📆 `DATE: ${today}` 🔄 *SHIFTS-LOG THREAD* 🔄 ---");
+        echo $this->create_thread($hourAlerts, $shiftsThreadKey, "--- 📆 `DATE: {$today}` 🔄 *SHIFTS-LOG THREAD* 🔄 ---");
             
-        echo $this->create_thread($hourAlerts, $afkThreadKey, "--- 📆 `DATE: ${today}` 🚶‍♂️ *AFK THREAD* 🚶‍♀️ ---");
+        echo $this->create_thread($hourAlerts, $afkThreadKey, "--- 📆 `DATE: {$today}` 🚶‍♂️ *AFK THREAD* 🚶‍♀️ ---");
             
-        echo $this->create_thread($taskAlerts, $tasksAllThreadKey, "--- 📆 `DATE: ${today}` 📝 *TASKS ALLOCATION THREAD* 📋 ---");
+        echo $this->create_thread($taskAlerts, $tasksAllThreadKey, "--- 📆 `DATE: {$today}` 📝 *TASKS ALLOCATION THREAD* 📋 ---");
             
-        echo $this->create_thread($taskAlerts, $tasksActThreadKey, "--- 📆 `DATE: ${today}` 🏃‍♂️ *TASKS ACTIVITY THREAD* 🏃‍♀️ ---");
+        echo $this->create_thread($taskAlerts, $tasksActThreadKey, "--- 📆 `DATE: {$today}` 🏃‍♂️ *TASKS ACTIVITY THREAD* 🏃‍♀️ ---");
 
-        echo $this->create_thread($scheduleAlerts, $workingHoursThreadKey, "--- 📆 `DATE: ${today}` 🕰️ *WORK SCHEDULE THREAD* 🏢 ---");
+        echo $this->create_thread($scheduleAlerts, $workingHoursThreadKey, "--- 📆 `DATE: {$today}` 🕰️ *WORK SCHEDULE THREAD* 🏢 ---");
             
-        echo $this->create_thread($scheduleAlerts, $eosThreadKey, "--- 📆 `DATE: ${today}` 📚 *EOS SUMMARIES THREAD* 📖 ---"); 
+        echo $this->create_thread($scheduleAlerts, $eosThreadKey, "--- 📆 `DATE: {$today}` 📚 *EOS SUMMARIES THREAD* 📖 ---"); 
         
     }
 
