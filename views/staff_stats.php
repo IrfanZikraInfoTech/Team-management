@@ -504,6 +504,7 @@
 <?php init_tail(); ?>
 
 <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
 
 function fetchSummary(day){
 
@@ -547,86 +548,85 @@ function fetchSummary(day){
 }
 
 
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
-<script>
-function fetchDailyInfo(day) {
-
-    const staff_id = <?= $staff_id_this; ?> // Replace with the actual staff ID
-    const currentDate = new Date();
-    const month = <?= $month_this; ?>;
-    const year = currentDate.getFullYear();
-
-    const monthStr = month < 10 ? `0${month}` : `${month}`;
-    const dayStr = day < 10 ? `0${day}` : `${day}`;
-
-    const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
-    const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
-
-    // Setting the focus
-    timeline.setWindow(startDate, endDate);
 
 
-    $.ajax({
-        url: admin_url + 'team_management/fetch_daily_info/',
-        type: 'POST',
-        data: {
-            staff_id: staff_id,
-            day: day,
-            month: month,
-            year: year,
-            [csrfData.token_name]: csrfData.hash,
-        },
-        dataType: 'json',
-        success: function (data) {
-            console.log(data);
+    function fetchDailyInfo(day) {
 
-            $("#stats_daily_title").html(" :: " + day + "/" + month + "/" + <?= date('Y') ?>);
+        const staff_id = <?= $staff_id_this; ?> // Replace with the actual staff ID
+        const currentDate = new Date();
+        const month = <?= $month_this; ?>;
+        const year = currentDate.getFullYear();
 
-            $('#total_clock_in_time_day').html(data.total_clocked_in_time);
-            $('#total_shift_duration').html(data.total_shift_duration);
-            $('#total_task_time').html(data.total_task_time);
+        const monthStr = month < 10 ? `0${month}` : `${month}`;
+        const dayStr = day < 10 ? `0${day}` : `${day}`;
 
-            $('#total_no_tasks_day').html(data.total_no_tasks + " tasks");
-            $('#total_completed_tasks_day').html(data.total_completed_tasks + " tasks");
-            $('#tasks_rate_day').html(data.tasks_rate + "%");
+        const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
+        const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
+
+        // Setting the focus
+        timeline.setWindow(startDate, endDate);
 
 
-            $('#on_leave').html(data.on_leave ? 'Yes' : 'No');
+        $.ajax({
+            url: admin_url + 'team_management/fetch_daily_info/',
+            type: 'POST',
+            data: {
+                staff_id: staff_id,
+                day: day,
+                month: month,
+                year: year,
+                [csrfData.token_name]: csrfData.hash,
+            },
+            dataType: 'json',
+            success: function (data) {
+                console.log(data);
 
-            const afk_entries = data.afk_and_offline.filter(entry => entry.status === 'AFK');
-            const offline_entries = data.afk_and_offline.filter(entry => entry.status === 'Offline');
+                $("#stats_daily_title").html(" :: " + day + "/" + month + "/" + <?= date('Y') ?>);
 
-            const monthDigit = month.toLocaleString('en-US', {
-                minimumIntegerDigits: 2,
-                useGrouping: false
-            });
+                $('#total_clock_in_time_day').html(data.total_clocked_in_time);
+                $('#total_shift_duration').html(data.total_shift_duration);
+                $('#total_task_time').html(data.total_task_time);
 
-            const afk_rows = generateStatusRows(afk_entries);
-            const offline_rows = generateStatusRows(offline_entries);
-            const tasks_rows = generateTasksRows(data.task_timers);
-            const all_tasks_rows = generateAllTasksRows(data.all_tasks, year+"-"+monthDigit+"-"+day);
+                $('#total_no_tasks_day').html(data.total_no_tasks + " tasks");
+                $('#total_completed_tasks_day').html(data.total_completed_tasks + " tasks");
+                $('#tasks_rate_day').html(data.tasks_rate + "%");
 
-            (afk_rows != "") ? $('#afk_time_table').html(afk_rows) : $('#afk_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
-            
-            (offline_rows != "") ? $('#offline_time_table').html(offline_rows) : $('#offline_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
 
-            (tasks_rows != "") ? $('#tbl_tasks_activity').html(tasks_rows) : $('#tbl_tasks_activity').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+                $('#on_leave').html(data.on_leave ? 'Yes' : 'No');
 
-            (all_tasks_rows != "") ? $('#tbl_all_tasks').html(all_tasks_rows) : $('#tbl_all_tasks').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+                const afk_entries = data.afk_and_offline.filter(entry => entry.status === 'AFK');
+                const offline_entries = data.afk_and_offline.filter(entry => entry.status === 'Offline');
 
-            
-            var targetDiv = $('#stats-per-day'); // Replace 'your-target-div-id' with the actual div id
-            $('html, body').animate({
-                scrollTop: targetDiv.offset().top
-            }, 1000);
+                const monthDigit = month.toLocaleString('en-US', {
+                    minimumIntegerDigits: 2,
+                    useGrouping: false
+                });
 
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            console.error('Error fetching daily stats:', textStatus, errorThrown);
-        }
-    });
-}
+                const afk_rows = generateStatusRows(afk_entries);
+                const offline_rows = generateStatusRows(offline_entries);
+                const tasks_rows = generateTasksRows(data.task_timers);
+                const all_tasks_rows = generateAllTasksRows(data.all_tasks, year+"-"+monthDigit+"-"+day);
+
+                (afk_rows != "") ? $('#afk_time_table').html(afk_rows) : $('#afk_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+                
+                (offline_rows != "") ? $('#offline_time_table').html(offline_rows) : $('#offline_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+
+                (tasks_rows != "") ? $('#tbl_tasks_activity').html(tasks_rows) : $('#tbl_tasks_activity').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+                (all_tasks_rows != "") ? $('#tbl_all_tasks').html(all_tasks_rows) : $('#tbl_all_tasks').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+                
+                var targetDiv = $('#stats-per-day'); // Replace 'your-target-div-id' with the actual div id
+                $('html, body').animate({
+                    scrollTop: targetDiv.offset().top
+                }, 1000);
+
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.error('Error fetching daily stats:', textStatus, errorThrown);
+            }
+        });
+    }
 
 function generateStatusRows(entries) {
     let rows = '';

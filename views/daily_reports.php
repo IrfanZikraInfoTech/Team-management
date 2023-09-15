@@ -224,7 +224,7 @@ function formatShift($shiftNumer)
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Task Rate</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Summary</th>
+                                Actions</th>
                         </tr>
                     </thead>
 
@@ -239,7 +239,8 @@ function formatShift($shiftNumer)
                             </td>
                             <td class="border px-4 py-2">
                                 <?php 
-                                $staff_id = $staff['staffid'];
+                                // var_dump($shift_timings_daywise);
+                                 $staff_id = $staff['staffid'];
                                 if (isset($shift_timings_daywise[$staff_id])) {
                                     $time_strings = [];
                                     foreach ($shift_timings_daywise[$staff_id] as $timing) {
@@ -256,15 +257,14 @@ function formatShift($shiftNumer)
                             <td class="border px-4 py-2">
                                 <?php
                                 $staff_id = $staff['staffid'];
-                                if (isset($staff['clock_times'])) {
-
-                                    echo($staff['clock_times']);
-
+                                if (isset($report_data['clock_times'][$staff_id])) {
+                                    echo $report_data['clock_times'][$staff_id];
                                 } else {
                                     echo 'N/A';
                                 }
                                 ?>
                             </td>
+
                             <td class="border px-4 py-2">
                                 <?= convertSecondsToRoundedTime($staff['total_shift_timings']) ?>
                             </td>
@@ -275,7 +275,10 @@ function formatShift($shiftNumer)
                                 <?=  $staff['task_rate'] ?>
                             </td>
                             <td class="border px-4 py-2">
-                                <a href="#" class="text-blue-500" data-staffname="<?= $staff['firstname'] ?>" data-staffid="<?= $staff['staffid'] ?>" data-toggle="modal" data-target="#dailySummaryModal">Summary</a>
+                                <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" data-staffname="<?= $staff['firstname'] ?>" data-staffid="<?= $staff['staffid'] ?>" data-toggle="modal" data-target="#dailySummaryModal"><i class="fa fa-list-alt"></i></a>
+                                <!-- <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="fetchDailyInfo(<?= $staff['date'] ?>)"><i class="fa fa-chart-bar"></i></button> -->
+
+
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -386,6 +389,88 @@ function formatShift($shiftNumer)
 <?php init_tail(); ?>
 
 <script>
+ function fetchDailyInfo(day) {
+
+const staff_id = <?= $staff_id_this; ?> // Replace with the actual staff ID
+const currentDate = new Date();
+const month = <?= $month_this; ?>;
+const year = currentDate.getFullYear();
+
+const monthStr = month < 10 ? `0${month}` : `${month}`;
+const dayStr = day < 10 ? `0${day}` : `${day}`;
+
+const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
+const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
+
+// Setting the focus
+timeline.setWindow(startDate, endDate);
+
+
+$.ajax({
+    url: admin_url + 'team_management/fetch_daily_info/',
+    type: 'POST',
+    data: {
+        staff_id: staff_id,
+        day: day,
+        month: month,
+        year: year,
+        [csrfData.token_name]: csrfData.hash,
+    },
+    dataType: 'json',
+    success: function (data) {
+        console.log(data);
+
+        $("#stats_daily_title").html(" :: " + day + "/" + month + "/" + <?= date('Y') ?>);
+
+        $('#total_clock_in_time_day').html(data.total_clocked_in_time);
+        $('#total_shift_duration').html(data.total_shift_duration);
+        $('#total_task_time').html(data.total_task_time);
+
+        $('#total_no_tasks_day').html(data.total_no_tasks + " tasks");
+        $('#total_completed_tasks_day').html(data.total_completed_tasks + " tasks");
+        $('#tasks_rate_day').html(data.tasks_rate + "%");
+
+
+        $('#on_leave').html(data.on_leave ? 'Yes' : 'No');
+
+        const afk_entries = data.afk_and_offline.filter(entry => entry.status === 'AFK');
+        const offline_entries = data.afk_and_offline.filter(entry => entry.status === 'Offline');
+
+        const monthDigit = month.toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+        });
+
+        const afk_rows = generateStatusRows(afk_entries);
+        const offline_rows = generateStatusRows(offline_entries);
+        const tasks_rows = generateTasksRows(data.task_timers);
+        const all_tasks_rows = generateAllTasksRows(data.all_tasks, year+"-"+monthDigit+"-"+day);
+
+        (afk_rows != "") ? $('#afk_time_table').html(afk_rows) : $('#afk_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+        
+        (offline_rows != "") ? $('#offline_time_table').html(offline_rows) : $('#offline_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+
+        (tasks_rows != "") ? $('#tbl_tasks_activity').html(tasks_rows) : $('#tbl_tasks_activity').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+        (all_tasks_rows != "") ? $('#tbl_all_tasks').html(all_tasks_rows) : $('#tbl_all_tasks').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+        
+        var targetDiv = $('#stats-per-day'); // Replace 'your-target-div-id' with the actual div id
+        $('html, body').animate({
+            scrollTop: targetDiv.offset().top
+        }, 1000);
+
+    },
+    error: function (jqXHR, textStatus, errorThrown) {
+        console.error('Error fetching daily stats:', textStatus, errorThrown);
+    }
+});
+}
+
+
+
+
+
 
     $('#dailySummaryModal').on('show.bs.modal', function (event) {
       const button = $(event.relatedTarget);
