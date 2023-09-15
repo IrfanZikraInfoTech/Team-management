@@ -184,6 +184,7 @@ class Team_management extends AdminController {
     // }
     public function daily_reports($month, $day)
     {
+        
         $report_data = $this->team_management_model->get_daily_report_data($month, $day);
         $data['report_data'] = $report_data;
     
@@ -210,7 +211,6 @@ class Team_management extends AdminController {
         $this->load->view('daily_reports', $data);
     }
     
-
 
     public function fetch_staff_day_summaries()
     {
@@ -2026,6 +2026,8 @@ class Team_management extends AdminController {
         return "OUIYUGBSCL";
     }
       
+
+    
 
 }
 

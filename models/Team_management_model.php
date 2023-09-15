@@ -1750,31 +1750,28 @@ class Team_management_model extends App_Model
         // End of processing day-wise shifts
 
         // times clock in
-        $this->db->select('DATE(clock_in) as date, clock_in, clock_out');
+        $this->db->select('staff_id, DATE(clock_in) as date, clock_in, clock_out');
         $this->db->from(db_prefix() . '_staff_time_entries');
-        $this->db->where('staff_id', $staff_id);
         $this->db->where('DATE(clock_in)', $date); // Fetch records for specific date
         $clock_ins = $this->db->get()->result_array();
         
-        $grouped_clock = [];
+        $clock_times = [];
         foreach ($clock_ins as $clock_in) {
-            $day = date('j', strtotime($clock_in['date']));
-            if (!isset($grouped_clock[$day])) {
-                $grouped_clock[$day] = [];
+            $staff_id = $clock_in['staff_id'];
+            if (!isset($clock_times[$staff_id])) {
+                $clock_times[$staff_id] = [];
             }
-            $grouped_clock[$day]['in'][] = date('h:i A', strtotime($clock_in['clock_in']));
-            if (isset($clock_in['clock_out'])) {
-                $grouped_clock[$day]['out'][] = date('h:i A', strtotime($clock_in['clock_out']));
+            
+            if (isset($clock_in['clock_in']) && isset($clock_in['clock_out'])) {
+                $clock_times[$staff_id][] = date('h:i A', strtotime($clock_in['clock_in'])) . ' - ' . date('h:i A', strtotime($clock_in['clock_out']));
             }
         }
         
-        $clock_times = [];
-        for ($i = 0; $i < count($clock_ins); $i++) {
-            if (isset($clock_ins[$i]['clock_in']) && isset($clock_ins[$i]['clock_out'])) {
-                $clock_times[] = date('h:i A', strtotime($clock_ins[$i]['clock_in'])) . ' - ' . date('h:i A', strtotime($clock_ins[$i]['clock_out']));
-            }
+        foreach ($clock_times as $staff_id => $times) {
+            $clock_times[$staff_id] = implode('<br>', $times);
         }
-        $report_data['clock_times'] = implode('<br> ', $clock_times);
+        
+        $report_data['clock_times'] = $clock_times;
         
 
         // Actual Total Logged in Time
@@ -1946,6 +1943,7 @@ class Team_management_model extends App_Model
         return $report_data;
     }
 
+
     public function get_monthly_report_data($month, $year)
     {
         $start_date = $year . '-' . $month . '-01';
@@ -2063,12 +2061,12 @@ class Team_management_model extends App_Model
         $report_data['all_staff'] = $all_staff_global;
         
 
-        $most_eff_staff_member = (object) $most_eff_staff_member;
-        if(!$most_eff_staff_member) {
-            $most_eff_staff_member = null;
-        }
+        // $most_eff_staff_member = (object) $most_eff_staff_member;
+        // if(!$most_eff_staff_member) {
+        //     $most_eff_staff_member = null;
+        // }
 
-        $report_data['most_eff_staff_member'] = $most_eff_staff_member;
+        // $report_data['most_eff_staff_member'] = $most_eff_staff_member;
 
 
         return $report_data;
@@ -2836,7 +2834,6 @@ class Team_management_model extends App_Model
         }
     }
     
-
-        
+       
     
 }

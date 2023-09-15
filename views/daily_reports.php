@@ -76,18 +76,26 @@ function formatShift($shiftNumer)
             </div>
 
         </div>
-        
-        <!-- Task Completion Rate -->
-        <div class="bg-gradient-to-br from-teal-600 to-green-500 shadow rounded p-4 text-white">
 
-            <h2 class="text-xl font-semibold mb-2">Task Rates</h2>
-            <div class="text-2xl">
-
-            <?= $report_data['total_completed_tasks'] ?> / <?= $report_data['total_all_tasks'] ?> (<?= $report_data['total_tasks_rate'] ?>%)
-
-
+        <!-- Total Absentees -->
+        <div class="bg-gradient-to-br from-green-500 to-blue-600 shadow rounded p-4 text-white">
+            <h2 class="text-xl font-semibold mb-2">Total Absentees :: <?= count($report_data['absentees']); ?></h2>
+            <div class="overflow-x-auto no-scroll">
+                <div class="flex flex-row gap-2 w-max">
+                    <?php if (!empty($report_data['absentees'])): ?>
+                        <?php foreach ($report_data['absentees'] as $absentee): ?>
+                            <div title="<?= $absentee['firstname'] ?>" data-toggle="tooltip" data-placement="top">
+                                <?= staff_profile_image($absentee['staffid'], ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p>No absentees</p>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
+        
+
 
         <!-- On Timers -->
         <div class="bg-gradient-to-br from-yellow-500 to-orange-500 shadow rounded p-4 text-white">
@@ -132,24 +140,7 @@ function formatShift($shiftNumer)
             </div>
         </div>
 
-        <!-- Total Absentees -->
-        <div class="bg-gradient-to-br from-green-500 to-blue-600 shadow rounded p-4 text-white">
-            <h2 class="text-xl font-semibold mb-2">Total Absentees :: <?= count($report_data['absentees']); ?></h2>
-            <div class="overflow-x-auto no-scroll">
-                <div class="flex flex-row gap-2 w-max">
-                    <?php if (!empty($report_data['absentees'])): ?>
-                        <?php foreach ($report_data['absentees'] as $absentee): ?>
-                            <div title="<?= $absentee['firstname'] ?>" data-toggle="tooltip" data-placement="top">
-                                <?= staff_profile_image($absentee['staffid'], ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <p>No absentees</p>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-        
+
 
         <!-- On Leave -->
         <div class="bg-gradient-to-br from-indigo-600 to-purple-500 shadow rounded p-4 text-white">
@@ -165,6 +156,16 @@ function formatShift($shiftNumer)
             <?php else: ?>
                 <p>No staff on leave</p>
             <?php endif; ?>
+
+            </div>
+        </div>
+
+        <!-- Task Completion Rate -->
+        <div class="bg-gradient-to-br from-teal-600 to-green-500 shadow rounded p-4 text-white">
+            <h2 class="text-xl font-semibold mb-2">Task Rates</h2>
+            <div class="text-2xl">
+
+                <?= $report_data['total_completed_tasks'] ?> / <?= $report_data['total_all_tasks'] ?> (<?= $report_data['total_tasks_rate'] ?>%)
 
             </div>
         </div>
@@ -203,36 +204,37 @@ function formatShift($shiftNumer)
             <p>No staff member found</p>
             <?php endif; ?>
         </div>
+    </div>
+
+
+        <div class="w-full p-5 my-5 bg-white shadow rounded p-4 col-span-2">
+            <h2 class="card-title ms-1 text-uppercase text-center mb-4" style="font-weight: bold; color: #343a40; letter-spacing: 1.5px;">Peak Hour</h2>
+            <div class="d-flex justify-content-center">
+                <canvas id="peakHoursChart" style="width: 100%; height: 400px;"></canvas>
+            </div>
+        </div>
+
 
         <!-- All Staff Members -->
         <div class="bg-white shadow rounded p-4 col-span-2">
             <h2 class="text-xl font-semibold mb-4">Staff Members</h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50">
+                    <thead>
                         <tr class="text-sm font-medium text-gray-700">
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Shift Timings</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Times Clocked in</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                 Total Shift Time</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Total Time Clocked in</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Task Rate</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Summary</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200">NAME</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200">SHIFT  TIMINGS</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200">TIMES CLOCKED IN</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200">TOTAL SHIFT TIME</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200">TOTAL TIME CLOCKED IN</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200">TASK RATE</th>
+                            <th class="px-4 py-2 border-b-2 border-gray-200">SUMMARY</th>
                         </tr>
                     </thead>
 
                     <tbody class="bg-white divide-y divide-gray-200 text-sm text-gray-600">
                     
                     <?php foreach ($report_data['all_staff'] as $staff): 
-                        //   var_dump($staff);
-                    //  var_dump($report_data['clock_times']);
                         ?>
                         <tr class="border-solid border-b border-gray-200">
                             <td class="border px-4 py-2 flex flex-row gap-2 items-center">
@@ -241,7 +243,8 @@ function formatShift($shiftNumer)
                             </td>
                             <td class="border px-4 py-2">
                                 <?php 
-                                $staff_id = $staff['staffid'];
+                                // var_dump($shift_timings_daywise);
+                                 $staff_id = $staff['staffid'];
                                 if (isset($shift_timings_daywise[$staff_id])) {
                                     $time_strings = [];
                                     foreach ($shift_timings_daywise[$staff_id] as $timing) {
@@ -259,14 +262,13 @@ function formatShift($shiftNumer)
                                 <?php
                                 $staff_id = $staff['staffid'];
                                 if (isset($report_data['clock_times'][$staff_id])) {
-                                    // echo $report_data['clock_times'][$staff_id];
-                                    echo($report_data['clock_times']);
-
+                                    echo $report_data['clock_times'][$staff_id];
                                 } else {
                                     echo 'N/A';
                                 }
                                 ?>
                             </td>
+
                             <td class="border px-4 py-2">
                                 <?= convertSecondsToRoundedTime($staff['total_shift_timings']) ?>
                             </td>
@@ -389,6 +391,7 @@ function formatShift($shiftNumer)
 
 <script>
 
+    
     $('#dailySummaryModal').on('show.bs.modal', function (event) {
       const button = $(event.relatedTarget);
       const staffId = button.data('staffid');
@@ -412,46 +415,19 @@ function formatShift($shiftNumer)
     $('#generate-summary').on('click', function () {
     alert_float("info", "Generating summary...");
 
-    // <?php
+    <?php
     
-    // $most_clock = ($report_data['most_clocked_in_staff_member']) ? ($report_data['most_clocked_in_staff_member']['firstname'] . ' ' . $report_data['most_clocked_in_staff_member']['lastname']) : 'None';
-    // $most_eff = ($report_data['most_eff_staff_member']) ? $report_data['most_eff_staff_member']->firstname . ' ' . $report_data['most_eff_staff_member']->lastname : 'None';
+    $most_clock = ($report_data['most_clocked_in_staff_member']) ? ($report_data['most_clocked_in_staff_member']['firstname'] . ' ' . $report_data['most_clocked_in_staff_member']['lastname']) : 'None';
+    $most_eff = ($report_data['most_eff_staff_member']) ? $report_data['most_eff_staff_member']->firstname . ' ' . $report_data['most_eff_staff_member']->lastname : 'None';
 
-    // $on_timers = $report_data['on_timers'];
-    // $on_timers_names = array_map(function($timer) { return $timer->firstname.' '.$timer->lastname; }, $on_timers);
-    // $on_timers_string = implode(', ', $on_timers_names);
-
-    // $late_timers = $report_data['late_joiners'];
-    // $late_joiners_names = array_map(function($joiner) { return $joiner->firstname.' '.$joiner->lastname; }, $late_timers);
-    // $late_joiners_string = implode(', ', $late_joiners_names);
-    // ?>
-
-<?php
-    $most_clock = 'None';
-    if (isset($report_data['most_clocked_in_staff_member'])) {
-        $mcism = $report_data['most_clocked_in_staff_member'];
-        $most_clock = (isset($mcism['firstname']) ? $mcism['firstname'] : '') . ' ' . (isset($mcism['lastname']) ? $mcism['lastname'] : '');
-    }
-
-    $most_eff = 'None';
-    if (isset($report_data['most_eff_staff_member'])) {
-        $mesm = $report_data['most_eff_staff_member'];
-        $most_eff = (isset($mesm->firstname) ? $mesm->firstname : '') . ' ' . (isset($mesm->lastname) ? $mesm->lastname : '');
-    }
-
-    $on_timers = $report_data['on_timers'] ?? [];
-    $on_timers_names = array_map(function($timer) {
-        return (isset($timer->firstname) ? $timer->firstname : '') . ' ' . (isset($timer->lastname) ? $timer->lastname : '');
-    }, $on_timers);
+    $on_timers = $report_data['on_timers'];
+    $on_timers_names = array_map(function($timer) { return $timer->firstname.' '.$timer->lastname; }, $on_timers);
     $on_timers_string = implode(', ', $on_timers_names);
 
-    $late_timers = $report_data['late_joiners'] ?? [];
-    $late_joiners_names = array_map(function($joiner) {
-        return (isset($joiner->firstname) ? $joiner->firstname : '') . ' ' . (isset($joiner->lastname) ? $joiner->lastname : '');
-    }, $late_timers);
+    $late_timers = $report_data['late_joiners'];
+    $late_joiners_names = array_map(function($joiner) { return $joiner->firstname.' '.$joiner->lastname; }, $late_timers);
     $late_joiners_string = implode(', ', $late_joiners_names);
-?>
-
+    ?>
 
     $.ajax({
         url: admin_url + 'team_management/generate_daily_summary',
@@ -484,6 +460,59 @@ function formatShift($shiftNumer)
 </script>
 
 <script>
+       // Extract the data from PHP into JavaScript
+       const timings = <?php echo json_encode($report_data['clock_times']); ?>;
+    
+    // Convert object values to array for iteration
+    const timingsArray = Object.values(timings);
+
+    // Function to convert 12-hour format to 24-hour format
+    function to24Hour(time) {
+        let [hours, minutes] = time.split(':');
+        let modifier = time.includes('PM') ? 'PM' : 'AM';
+        if (modifier === 'PM' && hours !== '12') hours = parseInt(hours) + 12;
+        if (modifier === 'AM' && hours === '12') hours = '00';
+        return parseInt(hours);
+    }
+
+    // Create an array of 24 zeros representing each hour of the day
+    const hoursArray = new Array(24).fill(0);
+
+    // Process timings data and update the hoursArray
+    timingsArray.forEach(time => {
+        let [start, end] = time.split(' - ');
+        let startHour = to24Hour(start);
+        let endHour = to24Hour(end);
+
+        // Increment each hour between start and end by 1
+        for (let i = startHour; i <= endHour; i++) {
+            hoursArray[i]++;
+        }
+    });
+
+    // Chart
+    let ctx = document.getElementById('peakHoursChart').getContext('2d');
+    let peakHoursChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'],
+            datasets: [{
+                label: 'Peak Hours',
+                data: hoursArray,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+
+
 $(document).ready(function() {
     // Initialize Summernote
     tinymce.init({
