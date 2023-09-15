@@ -296,7 +296,7 @@ function widget()
     echo ';';
     
     echo '</script>';
-    echo '<script src="' . base_url('modules/team_management/assets/js/widget.js') . '?v=3.31"></script>';
+    echo '<script src="' . base_url('modules/team_management/assets/js/widget.js') . '?v=3.32"></script>';
 
 }
 
@@ -448,20 +448,22 @@ function team_management_init_menu_items(){
     ]);
 
     $CI->app_menu->add_sidebar_children_item('team_management', [
-        'slug'     => 'individual_stats', // Required ID/slug UNIQUE for the child menu
-        'name'     => 'Individual Stats', // The name if the item
-        'href'     => admin_url('team_management/individual_stats'), // URL of the item
+        'slug'     => 'team_dashboard', // Required ID/slug UNIQUE for the child menu
+        'name'     => 'Dashboard', // The name if the item
+        'href'     => admin_url('team_management/dashboard'), // URL of the item
         'position' => 1, // The menu position
-        'icon'     => 'fa fa-user-cog', // Font awesome icon
+        'icon'     => 'fa fa-user-friends', // Font awesome icon
     ]);
 
     $CI->app_menu->add_sidebar_children_item('team_management', [
-        'slug'     => 'team_stats', // Required ID/slug UNIQUE for the child menu
-        'name'     => 'Team Stats', // The name if the item
-        'href'     => admin_url('team_management/team_stats'), // URL of the item
+        'slug'     => 'individual_stats', // Required ID/slug UNIQUE for the child menu
+        'name'     => 'Individual Stats', // The name if the item
+        'href'     => admin_url('team_management/individual_stats'), // URL of the item
         'position' => 2, // The menu position
-        'icon'     => 'fa fa-user-friends', // Font awesome icon
+        'icon'     => 'fa fa-user-cog', // Font awesome icon
     ]);
+
+    
 
     
     

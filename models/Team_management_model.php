@@ -1142,7 +1142,7 @@ class Team_management_model extends App_Model
         //return true;
         $shift_timings = $this->get_shift_timings_of_date($date, $staff_id);
 
-        if (empty($shift_timings) || ($shift_timings['first_shift']['start'] == "00:00:00" && $shift_timings['second_shift']['start'] == "00:00:00") || ( ($shift_timings['first_shift']['start'] == NULL) && ($shift_timings['second_shift']['start'] == NULL) )) {
+        if (empty($shift_timings) || ($shift_timings['first_shift']['start'] == "00:00:00" && $shift_timings['second_shift']['start'] == "00:00:00")) {
             return true;
         }else{
     
@@ -1849,28 +1849,10 @@ class Team_management_model extends App_Model
             
             $actual_total_logged_in_time += $total_time;
 
-            $tasks = $this->team_management_model->get_tasks_by_staff_member($staff_id);
-            $total_tasks = 0;
-            $completed_tasks = 0;
-            $today = $date;
-        
-            foreach ($tasks as $task) {
+            $total_tasks = $this->get_task_stats_by_staff_date($staff_id, $date)['total_tasks'];
+            $completed_tasks = $this->get_task_stats_by_staff_date($staff_id, $date)['completed_tasks'];
 
-                $dueConsideration = ($task->duedate) ? $task->duedate : date("Y-m-d", strtotime($task->dateadded));
-                $startConsideration = ($task->startdate) ? $task->startdate : date("Y-m-d", strtotime($task->dateadded));
 
-                if (
-                    (strtotime($startConsideration) <= strtotime($today) && strtotime($dueConsideration) >= strtotime($today)) 
-                    || 
-                    ($task->status != 5)
-                )
-                {
-                    $total_tasks++;
-                    if ($task->status == 5) {
-                        $completed_tasks++;
-                    }
-                }
-            }
         
             $task_rate_percentage = $total_tasks > 0 ? round(($completed_tasks / $total_tasks) * 100) : 0;
             $task_rate = $completed_tasks . '/' . $total_tasks . ' (' . $task_rate_percentage . '%)';
@@ -2894,6 +2876,118 @@ class Team_management_model extends App_Model
     }
     
 
-        
+    public function flash_stats($date) {
+        // Initialize counters for each status category
+        $counters = [
+            'leave' => 0,
+            'absent' => 0,
+            'present' => 0,
+            'late' => 0
+        ];
     
+        // Step 1: Select all active staff members
+        $this->db->select('staffid');
+        $this->db->from('tblstaff');
+        $this->db->where('active', 1);
+        $query = $this->db->get();
+        $active_staff = $query->result_array();
+    
+        // Step 2: Loop through active staff members to check their statuses
+        foreach ($active_staff as $staff) {
+            $staff_id = $staff['staffid'];
+    
+            // Check if staff is on leave
+            if ($this->is_on_leave($staff_id, $date)) {
+                $counters['leave']++;
+                continue;
+            }
+    
+            // Use the check_staff_late function to get the status
+            $result = $this->check_staff_late($staff_id, $date);
+            if (isset($result['status'])) {
+                $status = $result['status'];
+                $counters[$status]++;
+            }
+        }
+    
+        return $counters;
+    }
+    
+    public function get_summary_ratio($date) {
+        // Get total number of active staff
+        $this->db->where('active', 1);
+        $total_staff = $this->db->count_all_results('tblstaff');
+        
+        // Get the number of staff who have added summaries for the specific date
+        $this->db->distinct();
+        $this->db->select('staff_id');
+        $this->db->where('date', $date);
+        $this->db->from('tbl_staff_summaries');
+        $staff_with_summaries = $this->db->count_all_results();
+        
+        if ($total_staff == 0) {
+            return 0; // Prevent division by zero
+        }
+        
+        return ['staff_with_summaries' => $staff_with_summaries, 'total_staff' => $total_staff]; // Round to two decimal places
+    }
+
+    public function get_monthly_attendance_stats($month, $year) {
+        $num_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $attendance_stats = [
+            'present' => array_fill(1, $num_days, 0),
+            'absent' => array_fill(1, $num_days, 0),
+            'late' => array_fill(1, $num_days, 0),
+            'leave' => array_fill(1, $num_days, 0)
+        ];
+
+        $today = date("Y-m-d");
+    
+        for ($day = 1; $day <= $num_days; $day++) {
+            $date = "$year-$month-$day";
+            $active_staff = $this->db->select('staffid')->from('tblstaff')->where('active', 1)->get()->result_array();
+
+            if(strtotime($date) > strtotime($today)){
+                continue;
+            }
+            
+            foreach ($active_staff as $staff) {
+                $staff_id = $staff['staffid'];
+                if ($this->is_on_leave($staff_id, $date)) {
+                    $attendance_stats['leave'][$day]++;
+                } else {
+                    $status = $this->check_staff_late($staff_id, $date)['status'];
+                    $attendance_stats[$status][$day]++;
+                }
+            }
+        }
+        return $attendance_stats;
+    }
+    
+    public function get_task_stats_by_staff_date($staff_id, $date)
+    {
+        $tasks = $this->get_tasks_by_staff_member($staff_id);
+
+        $total_tasks = 0;
+        $completed_tasks = 0;
+
+        foreach ($tasks as $task) {
+            $taskDueConsideration = ($task->duedate) ? $task->duedate : $task->startdate;
+
+            if (
+                (strtotime($task->startdate) <= strtotime($date) && strtotime($taskDueConsideration) >= strtotime($date))
+                ||
+                (strtotime($task->startdate) <= strtotime($date) && $task->status != 5 && strtotime($taskDueConsideration) < strtotime($date))
+            )
+            {
+                $total_tasks++;
+                if ($task->status == 5) {
+                    $completed_tasks++;
+                }
+            }
+        }
+
+        return array('total_tasks' => $total_tasks, 'completed_tasks' => $completed_tasks);
+    }
+
 }

@@ -29,6 +29,31 @@ class Team_management extends AdminController {
     }
     
 
+    public function dashboard()
+    {
+        $date = date("Y-m-d");
+        $month = date("m");
+        $year = date("Y");
+
+        $data['flash_stats'] = $this->team_management_model->flash_stats($date);
+        $data['monthly_stats'] = $this->team_management_model->get_monthly_attendance_stats($month, $year);
+
+        $report_data = $this->team_management_model->get_daily_report_data(date('m'), date('d'));
+        $data['report_data'] = $report_data;
+        $data['summary_ratio'] = $this->team_management_model->get_summary_ratio($date);
+
+        $all_staff_ids = $this->team_management_model->get_all_staff();
+
+        foreach($all_staff_ids as $staff) {
+            $task_stats = $this->team_management_model->get_task_stats_by_staff_date($staff->staffid, $date);
+            $staff_task_stats[$staff->firstname] = $task_stats;
+        }
+
+        $data['staff_task_stats'] = $staff_task_stats;
+
+        $this->load->view('team_dashboard', $data);
+    }
+
     public function team_stats()
     {
         $data['staff_members'] = $this->team_management_model->get_all_staff();
