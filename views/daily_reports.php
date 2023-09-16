@@ -26,10 +26,21 @@ function formatShift($shiftNumer)
 
 ?>
 
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css"/>
+
 <style>
 
 .no-scroll::-webkit-scrollbar {
   display: none;
+}
+.clock-in-time {
+    background: linear-gradient(90deg, rgba(54,162,235,0.2) 0%, rgba(74,182,255,0.2) 100%)!important;
+    border-color: rgba(54, 162, 235, 1)!important;
+}
+
+.afk-time {
+    background: linear-gradient(90deg, rgba(255,206,86,0.2) 0%, rgba(255,226,106,0.2) 100%)!important;
+    border-color: rgba(255, 206, 86, 1)!important;
 }
 
 </style>
@@ -109,7 +120,7 @@ function formatShift($shiftNumer)
 
                 <?php if (!empty($report_data['on_timers'])): ?>
                     <?php foreach ($report_data['on_timers'] as $comer) : ?>
-                        <div class="hoverDiv" data-staffid="<?= $comer->staffid ?>" title="<?= $comer->firstname ?><?php foreach ($comer->late_status['shifts'] as $shift): ?>Shift <?= $shift['shift'] ?>: <?= is_numeric($shift['difference']) ? convertSecondsToRoundedTime($shift['difference']) : $shift['difference']; ?>&#13;&#10;<?php endforeach; ?>" data-toggle="tooltip" data-placement="top">
+                        <div title="<?= $comer->firstname ?>" data-toggle="tooltip" data-placement="top">
                             <?= staff_profile_image($comer->staffid, ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
                         </div>
                     <?php endforeach; ?>
@@ -131,7 +142,7 @@ function formatShift($shiftNumer)
 
                 <?php if (!empty($report_data['late_joiners'])): ?>
                     <?php foreach ($report_data['late_joiners'] as $late_joiner) : ?>
-                        <div class="hoverDiv" data-staffid="<?= $late_joiner->staffid ?>" title="<?= $late_joiner->firstname; ?>&#13;&#10;<?php foreach ($late_joiner->late_status['shifts'] as $shift): ?>Shift <?= $shift['shift'] ?>: <?= is_numeric($shift['difference']) ? convertSecondsToRoundedTime($shift['difference']) : $shift['difference']; ?>&#13;&#10;<?php endforeach; ?>" data-toggle="tooltip" data-placement="top">
+                        <div title="<?= $late_joiner->firstname; ?>" data-toggle="tooltip" data-placement="top">
                             <?= staff_profile_image($late_joiner->staffid, ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
                         </div>
                     <?php endforeach; ?>
@@ -565,32 +576,14 @@ $('#statsModal').on('shown.bs.modal', function () {
 });
 
 function openModal(staffId) {
-    Swal.fire({
-        title: 'Processing...',
-        text: 'Please wait a moment.',
-        icon: 'info',
-        showConfirmButton: false,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        onOpen: () => {
-            Swal.showLoading()
-        }
-    }).then((result) => {
-        if (result.dismiss === Swal.DismissReason.timer) {
-            console.log('Swal closed by timer');
-        }
-    })
-
-    setTimeout(function() {
-        // Close the Swal after 2 seconds
-        Swal.close();
+        $('#visualization').empty();
 
         // Populate the modal content and open the modal
         $('#modalContent').html("Staff ID: " + staffId);  
         $('#statsModal').data('staff-id', staffId);  
         $('#statsModal').modal('show');  
-    }, 2000);
-}
+    }
+
 
 
 function fetchDailyInfo(staff_id) {
@@ -605,8 +598,7 @@ const dayStr = day < 10 ? `0${day}` : `${day}`;
 const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
 const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
 
-// Setting the focus
-// timeline.setWindow(startDate, endDate);
+
 
 
 $.ajax({
@@ -622,7 +614,9 @@ $.ajax({
     dataType: 'json',
     success: function (data) {
         console.log(data);
-
+        console.log('Total clocked-in time:', data.total_clocked_in_time);
+        console.log('Total shift duration:', data.total_shift_duration);
+      
         $("#stats_daily_title").html(" :: " + day + "/" + month + "/" + <?= date('Y') ?>);
 
         $('#total_clock_in_time_day').html(data.total_clocked_in_time);
@@ -663,6 +657,95 @@ $.ajax({
             scrollTop: targetDiv.offset().top
         }, 1000);
 
+
+        var items = new vis.DataSet();
+// var options = {
+//   zoomMin: 1000 * 60 * 60,  // One hour in milliseconds
+//   zoomMax: 1000 * 60 * 60 * 24  // One day in milliseconds
+// };
+var options = {
+  zoomMin: 1000 * 60 * 60,  // One hour in milliseconds
+  zoomMax: 1000 * 60 * 60 * 24,  // One day in milliseconds
+  format: {
+    minorLabels: function(date, scale, step) {
+      return moment(date).format('hh:mm A'); // Time in AM/PM
+    },
+    majorLabels: function(date, scale, step) {
+      return moment(date).format('MMM DD YYYY'); // Date in a good looking format
+    }
+  }
+};
+var container = document.getElementById('visualization');
+if (container) {
+  var timeline = new vis.Timeline(container, items, options);
+} else {
+  console.error("Timeline container not found");
+  return;
+}
+
+// Debug
+console.log("Data:", data);
+console.log("AFK Entries:", afk_entries);
+console.log("Start Date:", startDate);
+console.log("End Date:", endDate);
+console.log("Items:", items);
+
+if (data.clock_ins_outs) {
+    const visJsData = [];
+    
+    data.clock_ins_outs.forEach(clock => {
+        const inTime = new Date(clock.clock_in).toISOString();
+        const outTime = new Date(clock.clock_out).toISOString();
+        
+        const item = {
+            content:' Clock in',
+            start: inTime,
+            end: outTime,
+            type: 'range',
+            className: 'clock-in-time',
+            group: 2 // Group 2 will contain all clock-ins
+        };
+
+        console.log("Item:", item);
+        visJsData.push(item);
+    });
+
+    console.log("VisJs Data:", visJsData);
+    
+    // Add to timeline
+    items.add(visJsData);
+}
+
+
+
+if (afk_entries) {
+  afk_entries.forEach(function (entry) {
+    // Convert '08:44 PM' format to ISO 8601
+    const today = new Date();
+    const startDateString = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()} ${entry.start_time}`;
+    const endDateString = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()} ${entry.end_time}`;
+    const startDate = new Date(startDateString).toISOString();
+    const endDate = new Date(endDateString).toISOString();
+
+    items.add({
+      content: 'AFK',
+      start: startDate,
+      end: endDate,
+      type: 'range',
+      className: 'afk-time',
+      group:1
+    });
+  });
+} else {
+  console.warn("afk_entries is not available");
+}
+
+// Setting the focus
+if (startDate && endDate) {
+  timeline.setWindow(startDate, endDate);
+} else {
+  console.warn("Start and end dates not properly set");
+}
     },
     error: function (jqXHR, textStatus, errorThrown) {
         console.error('Error fetching daily stats:', textStatus, errorThrown);
@@ -789,11 +872,9 @@ function generateAllTasksRows(entries, date) {
     return rows;
 }
 
-
 </script>
 
 <script>
-
 
     $('#dailySummaryModal').on('show.bs.modal', function (event) {
       const button = $(event.relatedTarget);
@@ -861,6 +942,60 @@ function generateAllTasksRows(entries, date) {
 </script>
 
 <script>
+
+    // Extract the data from PHP into JavaScript
+    const timings = <?php echo json_encode($report_data['clock_times']); ?>;
+    
+    // Convert object values to array for iteration
+    const timingsArray = Object.values(timings);
+
+    // Function to convert 12-hour format to 24-hour format
+    function to24Hour(time) {
+        let [hours, minutes] = time.split(':');
+        let modifier = time.includes('PM') ? 'PM' : 'AM';
+        if (modifier === 'PM' && hours !== '12') hours = parseInt(hours) + 12;
+        if (modifier === 'AM' && hours === '12') hours = '00';
+        return parseInt(hours);
+    }
+
+    // Create an array of 24 zeros representing each hour of the day
+    const hoursArray = new Array(24).fill(0);
+
+    // Process timings data and update the hoursArray
+    timingsArray.forEach(time => {
+        let [start, end] = time.split(' - ');
+        let startHour = to24Hour(start);
+        let endHour = to24Hour(end);
+
+        // Increment each hour between start and end by 1
+        for (let i = startHour; i <= endHour; i++) {
+            hoursArray[i]++;
+        }
+    });
+
+    // Chart
+    let ctx = document.getElementById('peakHoursChart').getContext('2d');
+    let peakHoursChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'],
+            datasets: [{
+                label: 'Peak Hours',
+                data: hoursArray,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+
+
 $(document).ready(function() {
     // Initialize Summernote
     tinymce.init({
@@ -868,37 +1003,37 @@ $(document).ready(function() {
         // Add any additional TinyMCE options you may need
     });
 
-        // Save day summary on button click
-        $('#save-summary-btn').click(function() {
-            var summary = tinyMCE.activeEditor.getContent();
-            alert_float("info", "Mailing summary...");
-            $.post("<?=admin_url('team_management/save_day_summary')?>", {date: "<?=$date?>", summary: summary}, function() {
-                $('#todaySummary').html(summary);
-                alert_float("success", "Success!");
-            });
+    // Save day summary on button click
+    $('#save-summary-btn').click(function() {
+        var summary = tinyMCE.activeEditor.getContent();
+        alert_float("info", "Mailing summary...");
+        $.post("<?=admin_url('team_management/save_day_summary')?>", {date: "<?=$date?>", summary: summary}, function() {
+            $('#todaySummary').html(summary);
+            alert_float("success", "Success!");
         });
-
-        //const dateInput = document.getElementById("date-input");
-        //const today = new Date();
-        //
-        //const month = ("0" + (today.getMonth() + 1)).slice(-2);
-        //const day = ("0" + today.getDate()).slice(-2);
-        //const formattedDate = `${today.getFullYear()}-${month}-${day}`;
-        //
-        //dateInput.value = formattedDate;
-
     });
 
-    function changeReport() {
-        var date = document.getElementById("date-input").value;
+    //const dateInput = document.getElementById("date-input");
+    //const today = new Date();
+    //
+    //const month = ("0" + (today.getMonth() + 1)).slice(-2);
+    //const day = ("0" + today.getDate()).slice(-2);
+    //const formattedDate = `${today.getFullYear()}-${month}-${day}`;
+    //
+    //dateInput.value = formattedDate;
 
-        const selectedDate = new Date(date);
-        const selectedMonth = ("0" + (selectedDate.getMonth() + 1)).slice(-2);
-        const selectedDay = ("0" + selectedDate.getDate()).slice(-2);
+});
 
-        window.location.href = "<?=admin_url('team_management/daily_reports')?>/" + selectedMonth + "/" + selectedDay;
+function changeReport() {
+    var date = document.getElementById("date-input").value;
 
-    }
+    const selectedDate = new Date(date);
+    const selectedMonth = ("0" + (selectedDate.getMonth() + 1)).slice(-2);
+    const selectedDay = ("0" + selectedDate.getDate()).slice(-2);
+
+    window.location.href = "<?=admin_url('team_management/daily_reports')?>/" + selectedMonth + "/" + selectedDay;
+
+}
 </script>
 </body>
 </html>
