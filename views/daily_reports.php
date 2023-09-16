@@ -34,6 +34,9 @@ function formatShift($shiftNumer)
 
 </style>
 
+
+
+
 <div id="wrapper" class="wrapper">
 
 <div class="container mx-auto px-4 py-6">
@@ -65,7 +68,7 @@ function formatShift($shiftNumer)
             <div class="flex flex-row gap-2 w-max">
                 <?php if (!empty($report_data['present_staff_list'])): ?>
                     <?php foreach ($report_data['present_staff_list'] as $staff): ?>
-                        <div title="<?= $staff['firstname'] ?>" data-toggle="tooltip" data-placement="top">
+                        <div class="staff-div" title="<?= $staff['firstname'] ?>" data-toggle="tooltip" data-placement="top" data-staff-id="<?= $staff['staff_id'] ?>">
                             <?= staff_profile_image($staff['staff_id'], ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
                         </div>
                     <?php endforeach; ?>
@@ -84,7 +87,7 @@ function formatShift($shiftNumer)
                 <div class="flex flex-row gap-2 w-max">
                     <?php if (!empty($report_data['absentees'])): ?>
                         <?php foreach ($report_data['absentees'] as $absentee): ?>
-                            <div title="<?= $absentee['firstname'] ?>" data-toggle="tooltip" data-placement="top">
+                            <div class="staff-div" title="<?= $absentee['firstname'] ?>" data-toggle="tooltip" data-placement="top" data-staff-id="<?= $absentee['staffid'] ?>">
                                 <?= staff_profile_image($absentee['staffid'], ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
                             </div>
                         <?php endforeach; ?>
@@ -373,6 +376,148 @@ function formatShift($shiftNumer)
 
 </div>
 
+
+<!-- stats modal  -->
+<div class="modal fade" id="statsModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="stats_daily_title">Stats Per Day: None selected!</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Stats cards -->
+                    <div class="grid grid-cols-3 gap-6 mb-10">
+                        <div class="bg-blue-100 rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-semibold mb-2">Total Clocked In Time</h3>
+                        <p class="text-xl font-bold" id="total_clock_in_time_day"><!-- Total clocked in time value --></p>
+                        </div>
+                        <div class="bg-green-100 rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-semibold mb-2">Total Shift Durations</h3>
+                        <p class="text-xl font-bold" id="total_shift_duration"><!-- Total shift durations value --></p>
+                        </div>
+                        <div class="bg-yellow-100 rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-semibold mb-2">Total Time on Tasks</h3>
+                        <p class="text-xl font-bold" id="total_task_time"><!-- Total time on tasks value --></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6 mb-10">
+                        <div class="bg-pink-100 rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-semibold mb-2">Total:</h3>
+                        <p class="text-xl font-bold" id="total_no_tasks_day"><!-- Total clocked in time value --></p>
+                        </div>
+                        <div class="bg-cyan-100 rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-semibold mb-2">Completed:</h3>
+                        <p class="text-xl font-bold" id="total_completed_tasks_day"><!-- Total shift durations value --></p>
+                        </div>
+                        <div class="bg-orange-100 rounded-lg p-4 shadow">
+                        <h3 class="text-lg font-semibold mb-2">Tasks Rate:</h3>
+                        <p class="text-xl font-bold" id="tasks_rate_day"><!-- Total time on tasks value --></p>
+                        </div>
+                    </div>
+
+                    <!-- Additional stats -->
+
+                    <div class="mb-10">
+                        <h3 class="text-lg font-semibold mb-2">All Tasks</h3>
+                        <!-- Task timer activity table -->
+                        <table class="min-w-full divide-y divide-gray-200 shadow-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time Taken</th>
+                                
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">No. Days Late</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="tbl_all_tasks">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-10">
+                        <h3 class="text-lg font-semibold mb-2">Task Timer Activity</h3>
+                        <!-- Task timer activity table -->
+                        <table class="min-w-full divide-y divide-gray-200 shadow-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Task</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Start Time</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">End Time</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="tbl_tasks_activity">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+
+                        <div>
+
+                        <h3 class="text-lg font-semibold mb-2">AFK Time</h3>
+                        <p class="text-xl font-bold"><!-- Total AFK time value --></p>
+                        <!-- AFK time table -->
+                        
+                        <table class="min-w-full divide-y divide-gray-200 shadow-sm mb-6">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Start Time</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">End Time</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="afk_time_table" class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+
+                        </div>
+                        
+                        <div>
+
+                        <h3 class="text-lg font-semibold mb-2">Offline Time</h3>
+                        <p class="text-xl font-bold"><!-- Total offline time value --></p>
+                        <!-- Offline time table -->
+                        <!-- Add offline time table here -->
+                        
+                        <table class="min-w-full divide-y divide-gray-200 shadow-sm mb-6">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Start Time</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">End Time</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="offline_time_table" class="bg-white divide-y divide-gray-200">
+                                <!-- Add offline time entries here -->
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-2">Leave Status</h3>
+                        <p class="text-xl font-bold" id="on_leave"><!-- Leave status value --></p>
+                    </div>
+                    <div id="visualization" class="my-5"></div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
   const summaries = <?php echo json_encode($summaries); ?>;
 </script>
@@ -397,6 +542,225 @@ function formatShift($shiftNumer)
 
 
 <?php init_tail(); ?>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+
+<script>
+
+$(document).ready(function(){
+    $('.staff-div').on('click', function(){
+        var staffId = $(this).data('staff-id'); // Retrieve the staff_id from clicked element
+        $('#modalContent').html("Staff ID: " + staffId); // Populate the modal content
+        $('#statsModal').data('staff-id', staffId); // Set the staffId as a data attribute on the modal
+        $('#statsModal').modal('show'); // Show the modal
+    });
+});
+
+// Event listener for shown.bs.modal
+$('#statsModal').on('shown.bs.modal', function () {
+    var staffId = $(this).data('staff-id'); // Retrieve staffId from modal's data attribute
+    fetchDailyInfo(staffId); // Call fetchDailyInfo function
+});
+
+
+function fetchDailyInfo(staff_id) {
+const currentDate = new Date();
+const month = <?= $thisMonth; ?>;
+const day = <?= $thisDay; ?>;
+const year = currentDate.getFullYear();
+
+const monthStr = month < 10 ? `0${month}` : `${month}`;
+const dayStr = day < 10 ? `0${day}` : `${day}`;
+
+const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
+const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
+
+// Setting the focus
+// timeline.setWindow(startDate, endDate);
+
+
+$.ajax({
+    url: admin_url + 'team_management/fetch_daily_info/',
+    type: 'POST',
+    data: {
+        staff_id: staff_id,
+        day: day,
+        month: month,
+        year: year,
+        [csrfData.token_name]: csrfData.hash,
+    },
+    dataType: 'json',
+    success: function (data) {
+        console.log(data);
+
+        $("#stats_daily_title").html(" :: " + day + "/" + month + "/" + <?= date('Y') ?>);
+
+        $('#total_clock_in_time_day').html(data.total_clocked_in_time);
+        $('#total_shift_duration').html(data.total_shift_duration);
+        $('#total_task_time').html(data.total_task_time);
+
+        $('#total_no_tasks_day').html(data.total_no_tasks + " tasks");
+        $('#total_completed_tasks_day').html(data.total_completed_tasks + " tasks");
+        $('#tasks_rate_day').html(data.tasks_rate + "%");
+
+
+        $('#on_leave').html(data.on_leave ? 'Yes' : 'No');
+
+        const afk_entries = data.afk_and_offline.filter(entry => entry.status === 'AFK');
+        const offline_entries = data.afk_and_offline.filter(entry => entry.status === 'Offline');
+
+        const monthDigit = month.toLocaleString('en-US', {
+            minimumIntegerDigits: 2,
+            useGrouping: false
+        });
+
+        const afk_rows = generateStatusRows(afk_entries);
+        const offline_rows = generateStatusRows(offline_entries);
+        const tasks_rows = generateTasksRows(data.task_timers);
+        const all_tasks_rows = generateAllTasksRows(data.all_tasks, year+"-"+monthDigit+"-"+day);
+
+        (afk_rows != "") ? $('#afk_time_table').html(afk_rows) : $('#afk_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+        
+        (offline_rows != "") ? $('#offline_time_table').html(offline_rows) : $('#offline_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+
+        (tasks_rows != "") ? $('#tbl_tasks_activity').html(tasks_rows) : $('#tbl_tasks_activity').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+        (all_tasks_rows != "") ? $('#tbl_all_tasks').html(all_tasks_rows) : $('#tbl_all_tasks').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+        
+        var targetDiv = $('#stats-per-day'); // Replace 'your-target-div-id' with the actual div id
+        $('html, body').animate({
+            scrollTop: targetDiv.offset().top
+        }, 1000);
+
+    },
+    error: function (jqXHR, textStatus, errorThrown) {
+        console.error('Error fetching daily stats:', textStatus, errorThrown);
+    }
+});
+}
+
+
+function generateStatusRows(entries) {
+    let rows = '';
+    entries.forEach(entry => {
+        rows += `
+        <tr>
+            <td class="px-4 py-2">${entry.start_time}</td>
+            <td class="px-4 py-2">${entry.end_time}</td>
+            <td class="px-4 py-2">${(entry.duration)}</td>
+        </tr>`;
+    });
+    return rows;
+}
+
+function generateTasksRows(entries) {
+    let rows = '';
+    entries.forEach(entry => {
+ 
+
+        if(entry.project_id != null){
+            rows += `
+            <tr>
+                <td class="px-4 py-2 flex flex-col">
+                    <a target="_blank" onclick="init_task_modal(${entry.task_id}); return false" href="#" class="text-sm">${entry.task_name}</a>
+                    <a target="_blank" href="<?= admin_url(); ?>projects/view/${entry.project_id}" class="text-xs">${entry.project_name}</a>
+                </td>
+                <td class="px-4 py-2">${entry.start_time}</td>
+                <td class="px-4 py-2">${entry.end_time}</td>
+                <td class="px-4 py-2">${(entry.duration)}</td>
+            </tr>
+            `;
+        }else{
+            rows += `
+            <tr>
+                <td class="px-4 py-2 flex flex-col">
+                    <a target="_blank" href="#" onclick="init_task_modal(${entry.task_id}); return false" class="text-sm">${entry.task_name}</a>
+                </td>
+                <td class="px-4 py-2">${entry.start_time}</td>
+                <td class="px-4 py-2">${entry.end_time}</td>
+                <td class="px-4 py-2">${(entry.duration)}</td>
+            </tr>
+            `;
+        }
+        
+    });
+    return rows;
+}
+
+function generateAllTasksRows(entries, date) {
+    let rows = '';
+
+    let today = new Date();
+    today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+
+    entries.forEach(entry => {
+
+        let taskBG = "";
+
+        let assignedDate = new Date(entry.Assigned_Date);
+        assignedDate = new Date(assignedDate.getFullYear(), assignedDate.getMonth(), assignedDate.getDate());
+
+        let dueDate = new Date(entry.duedate);
+        //dueDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+
+        if(entry.Completed_Date){
+            let completedDate = new Date(entry.Completed_Date);
+            completedDate = new Date(completedDate.getFullYear(), completedDate.getMonth(), completedDate.getDate());
+            console.log("dueDate",dueDate.getTime());
+            console.log("completedDate",completedDate.getTime());
+            if(dueDate.getTime() >= completedDate.getTime()){
+                taskBG = "bg-emerald-100/70";
+            } else {
+                taskBG = "bg-red-100/70";
+            }
+        } else {
+            if(dueDate.getTime() >= today.getTime()){
+                taskBG = "bg-gray-100/70";
+            } else {
+                taskBG = "bg-red-100/70";
+            }
+        }
+        
+
+        if(entry.project_id != null){
+            rows += `
+            <tr class="transition-all hover:`+taskBG+`">
+                <td class="px-4 py-2">${(entry.task_id)}</td>
+                <td class="px-4 py-2 flex flex-col">
+                    <a target="_blank" href="#" onclick="init_task_modal(${entry.task_id}); return false" class="text-sm">${entry.task_name}</a>
+                    <a target="_blank" href="<?= admin_url(); ?>projects/view/${entry.project_id}" class="text-xs">${entry.project_name}</a>
+                </td>
+                <td class="px-4 py-2">${(entry.Assigned_Date)}</td>
+                <td class="px-4 py-2">${(entry.duedate)}</td>
+                <td class="px-4 py-2">${(entry.Completed_Date)}</td>
+                <td class="px-4 py-2">${(entry.Total_Time_Taken)}</td>
+                <td class="px-4 py-2">${(entry.Days_Offset)}</td>
+            </tr>
+            `;
+        }else{
+            rows += `
+            <tr class="transition-all hover:`+hoverColor+`">
+                <td class="px-4 py-2">${(entry.task_id)}</td>
+                <td class="px-4 py-2 flex flex-col">
+                    <a target="_blank" href="#" onclick="init_task_modal(${entry.task_id}); return false" class="text-sm">${entry.task_name}</a>
+                </td>
+                <td class="px-4 py-2">${(entry.Assigned_Date)}</td>
+                <td class="px-4 py-2">${(entry.duedate)}</td>
+                <td class="px-4 py-2">${(entry.Completed_Date)}</td>
+                <td class="px-4 py-2">${(entry.Total_Time_Taken)}</td>
+                <td class="px-4 py-2">${(entry.Days_Offset)}</td>
+            </tr>
+            `;
+        }
+        
+    });
+    return rows;
+}
+
+
+</script>
 
 <script>
 
@@ -463,13 +827,12 @@ function formatShift($shiftNumer)
 
 });
 
-
-
 </script>
 
 <script>
-       // Extract the data from PHP into JavaScript
-       const timings = <?php echo json_encode($report_data['clock_times']); ?>;
+
+    // Extract the data from PHP into JavaScript
+    const timings = <?php echo json_encode($report_data['clock_times']); ?>;
     
     // Convert object values to array for iteration
     const timingsArray = Object.values(timings);
