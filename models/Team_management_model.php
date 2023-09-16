@@ -2139,60 +2139,39 @@ class Team_management_model extends App_Model
     }
     
     
+    
     public function get_on_time_and_late_staff($date)
-    {
+    {   
         // Get all staff data
         $this->db->select('*');
         $this->db->from('tblstaff');
         $staffs = $this->db->get()->result();
-    
+
         $on_timers = array();
         $late_joiners = array();
-    
+
         // Iterate each staff
         foreach($staffs as $staff) {
-            $this->db->select('*');
-            $this->db->from('tbl_staff_shifts');
-            $this->db->where('staff_id', $staff->staffid);
-            $this->db->where('Year', date('Y', strtotime($date)));
-            $this->db->where('month', date('m', strtotime($date)));
-            $this->db->where('day', date('d', strtotime($date)));
-            $shifts = $this->db->get()->result();
-    
-            $this->db->select('*');
-            $this->db->from('tbl_staff_time_entries');
-            $this->db->where('staff_id', $staff->staffid);
-            $this->db->where('clock_in >=', $date . ' 00:00:00');
-            $this->db->where('clock_in <=', $date . ' 23:59:59');
-            $entries = $this->db->get()->result();
-    
-            $is_late = false;
             
-            // Check for each shift
-            foreach($shifts as $shift) {
-                $found_entry = null;
-                foreach($entries as $entry) {
-                    if(strtotime($entry->clock_in) <= strtotime($date . ' ' . $shift->shift_start_time)) {
-                        $found_entry = $entry;
-                        break;
-                    }
-                }
-    
-                if(!$found_entry || (strtotime($found_entry->clock_in) - strtotime($date . ' ' . $shift->shift_start_time)) > 600) {
-                    $is_late = true;
-                    break;
-                }
+            $late_status = $this->check_staff_late($staff->staffid, $date);
+
+            if($late_status['status'] === 'absent'){
+                // Handle absent case if needed
+                continue;
             }
-    
-            if($is_late) {
+
+            $staff->late_status = $late_status;  // Attach the entire $late_status data to $staff object
+            // Check if staff is late in first shift only
+            if($late_status['status'] === 'late'){
                 $late_joiners[] = $staff;
             } else {
                 $on_timers[] = $staff;
             }
         }
-    
+
         return ['on_timers' => $on_timers, 'late_joiners' => $late_joiners];
     }
+
     
 
 
@@ -2854,8 +2833,6 @@ class Team_management_model extends App_Model
             }
             
         }
-
-        
 
         $status = $overall_late ? 'late' : 'present';
         return ['status' => $status, 'shifts' => $late_shifts];
