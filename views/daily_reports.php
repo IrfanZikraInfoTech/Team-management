@@ -289,7 +289,7 @@ function formatShift($shiftNumer)
                             </td>
                             <td class="border px-4 py-2">
                                 <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" data-staffname="<?= $staff['firstname'] ?>" data-staffid="<?= $staff['staffid'] ?>" data-toggle="modal" data-target="#dailySummaryModal"><i class="fa fa-list-alt"></i></a>
-                                <!-- <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="fetchDailyInfo(<?= $staff['date'] ?>)"><i class="fa fa-chart-bar"></i></button> -->
+                                <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="openModal(<?= $staff['staffid'] ?>)"><i class="fa fa-chart-bar"></i></a>
 
 
                             </td>
@@ -378,6 +378,8 @@ function formatShift($shiftNumer)
 
 
 <!-- stats modal  -->
+
+
 <div class="modal fade" id="statsModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -546,21 +548,49 @@ function formatShift($shiftNumer)
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
 
 <script>
-
+    
 $(document).ready(function(){
     $('.staff-div').on('click', function(){
-        var staffId = $(this).data('staff-id'); // Retrieve the staff_id from clicked element
-        $('#modalContent').html("Staff ID: " + staffId); // Populate the modal content
-        $('#statsModal').data('staff-id', staffId); // Set the staffId as a data attribute on the modal
-        $('#statsModal').modal('show'); // Show the modal
+        var staffId = $(this).data('staff-id');  // Retrieve the staff_id from clicked element
+        $('#modalContent').html("Staff ID: " + staffId);  // Populate the modal content
+        $('#statsModal').data('staff-id', staffId);  // Set the staffId as a data attribute on the modal
+        $('#statsModal').modal('show');  // Show the modal
     });
 });
 
 // Event listener for shown.bs.modal
 $('#statsModal').on('shown.bs.modal', function () {
-    var staffId = $(this).data('staff-id'); // Retrieve staffId from modal's data attribute
-    fetchDailyInfo(staffId); // Call fetchDailyInfo function
+    var staffId = $(this).data('staff-id');  // Retrieve staffId from modal's data attribute
+    fetchDailyInfo(staffId);  // Call fetchDailyInfo function
 });
+
+function openModal(staffId) {
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Please wait a moment.',
+        icon: 'info',
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        onOpen: () => {
+            Swal.showLoading()
+        }
+    }).then((result) => {
+        if (result.dismiss === Swal.DismissReason.timer) {
+            console.log('Swal closed by timer');
+        }
+    })
+
+    setTimeout(function() {
+        // Close the Swal after 2 seconds
+        Swal.close();
+
+        // Populate the modal content and open the modal
+        $('#modalContent').html("Staff ID: " + staffId);  
+        $('#statsModal').data('staff-id', staffId);  
+        $('#statsModal').modal('show');  
+    }, 2000);
+}
 
 
 function fetchDailyInfo(staff_id) {
