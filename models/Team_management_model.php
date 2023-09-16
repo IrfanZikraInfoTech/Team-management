@@ -131,13 +131,23 @@ class Team_management_model extends App_Model
         $timers->totalOngoingTasks = $this->get_ongoing_tasks();
         $maxTasksCompleted = $this->get_staff_with_most_tasks_completed_today();
 
-        if($maxTasksCompleted){
-            $timers->maxTasksCompletedName = $maxTasksCompleted->lastname;
-            $timers->maxTasksCompletedId = $maxTasksCompleted->staffid;
-        }else{
+        if(isset($maxTasksCompleted)){
+            if(isset($maxTasksCompleted->lastname)) {
+                $timers->maxTasksCompletedName = $maxTasksCompleted->lastname;
+            } else {
+                $timers->maxTasksCompletedName = "Unknown";
+            }
+            
+            if(isset($maxTasksCompleted->staffid)) {
+                $timers->maxTasksCompletedId = $maxTasksCompleted->staffid;
+            } else {
+                $timers->maxTasksCompletedId = null;
+            }
+        } else {
             $timers->maxTasksCompletedName = "None :(";
             $timers->maxTasksCompletedId = null;
         }
+        
 
         $maxHours = $this->get_staff_with_highest_today_live_timer();
         if($maxHours){
@@ -792,6 +802,7 @@ class Team_management_model extends App_Model
 
                     $this->db->insert(''.db_prefix().'_staff_shifts', [
                         'staff_id' => $staff_id,
+                        'Year' => date("Y"),
                         'month' => $month,
                         'day' => $day,
                         'shift_number' => $shift_number,
@@ -1131,7 +1142,7 @@ class Team_management_model extends App_Model
         //return true;
         $shift_timings = $this->get_shift_timings_of_date($date, $staff_id);
 
-        if (empty($shift_timings) || ($shift_timings['first_shift']['start'] == "00:00:00" && $shift_timings['second_shift']['start'] == "00:00:00") || ( ($shift_timings['first_shift']['start'] == NULL) && ($shift_timings['second_shift']['start'] == NULL) )) {
+        if (empty($shift_timings) || ($shift_timings['first_shift']['start'] == "00:00:00" && $shift_timings['second_shift']['start'] == "00:00:00")) {
             return true;
         }else{
     
@@ -1280,12 +1291,13 @@ class Team_management_model extends App_Model
 
         $total_shifts = 0;
         $sum_difference = 0;
-
+        
         foreach ($data as &$stat) {
             $day = $stat['day'];
             $total_clock_in_time = 0;
             $total_shift_duration = 0;
             $total_task_time = 0;
+            
     
             // Calculate total_clock_in_time
             $total_clock_in_time = $this->get_day_clocked_in_time($staff_id, $day, $current_month, $current_year);
@@ -1406,6 +1418,41 @@ class Team_management_model extends App_Model
             $date = date('Y-m-d', $timestampDay);
 
             $stat['day_date'] = $date;
+            $stat['status'] = $this->check_staff_late($staff_id,$date);
+            $tasks = $this->team_management_model->get_tasks_by_staff_member($staff_id);
+            $total_tasks = 0;
+            $total_completed_tasks = 0;
+
+            $total_all_tasks = 0;
+            $completed_tasks = 0;
+            $today = $date;
+        
+            foreach ($tasks as $task) {
+
+                $dueConsideration = ($task->duedate) ? $task->duedate : date("Y-m-d", strtotime($task->dateadded));
+                $startConsideration = ($task->startdate) ? $task->startdate : date("Y-m-d", strtotime($task->dateadded));
+
+                if (
+                    (strtotime($startConsideration) <= strtotime($today) && strtotime($dueConsideration) >= strtotime($today)) 
+                    || 
+                    ($task->status != 5)
+                )
+                {
+                    $total_tasks++;
+                    if ($task->status == 5) {
+                        $completed_tasks++;
+                    }
+                }
+            }
+        
+            $task_rate_percentage = $total_tasks > 0 ? round(($completed_tasks / $total_tasks) * 100) : 0;
+            $task_rate = $completed_tasks . '/' . $total_tasks . ' (' . $task_rate_percentage . '%)';
+            $stat['task_rate'] = $task_rate;
+
+            $total_all_tasks += $total_tasks;
+            $total_completed_tasks += $completed_tasks;
+
+            
         }
 
         $max_acceptable_difference = 10 * 60 * 60;
@@ -1802,28 +1849,10 @@ class Team_management_model extends App_Model
             
             $actual_total_logged_in_time += $total_time;
 
-            $tasks = $this->team_management_model->get_tasks_by_staff_member($staff_id);
-            $total_tasks = 0;
-            $completed_tasks = 0;
-            $today = $date;
-        
-            foreach ($tasks as $task) {
+            $total_tasks = $this->get_task_stats_by_staff_date($staff_id, $date)['total_tasks'];
+            $completed_tasks = $this->get_task_stats_by_staff_date($staff_id, $date)['completed_tasks'];
 
-                $dueConsideration = ($task->duedate) ? $task->duedate : date("Y-m-d", strtotime($task->dateadded));
-                $startConsideration = ($task->startdate) ? $task->startdate : date("Y-m-d", strtotime($task->dateadded));
 
-                if (
-                    (strtotime($startConsideration) <= strtotime($today) && strtotime($dueConsideration) >= strtotime($today)) 
-                    || 
-                    ($task->status != 5)
-                )
-                {
-                    $total_tasks++;
-                    if ($task->status == 5) {
-                        $completed_tasks++;
-                    }
-                }
-            }
         
             $task_rate_percentage = $total_tasks > 0 ? round(($completed_tasks / $total_tasks) * 100) : 0;
             $task_rate = $completed_tasks . '/' . $total_tasks . ' (' . $task_rate_percentage . '%)';
@@ -2071,6 +2100,9 @@ class Team_management_model extends App_Model
 
         $report_data['all_staff'] = $all_staff_global;
         
+
+        // Initialize the variable before using it
+        $most_eff_staff_member = array(); // or some default value suitable for your logic
 
 
         // $most_eff_staff_member = (object) $most_eff_staff_member;
@@ -2567,8 +2599,10 @@ class Team_management_model extends App_Model
                 
                 $tasks[$index]['Completed_Date'] = date("Y-m-d", strtotime($tasks[$index]['Completed_Date']));
                 
-                $tasks[$index]['Days_Offset'] = (date("d", strtotime($tasks[$index]['Completed_Date']) - strtotime($tasks[$index]['duedate'])) - 1) . ' days';
-            }else{
+                if (isset($tasks[$index]['Completed_Date'], $tasks[$index]['duedate']) && ($completedDate = strtotime($tasks[$index]['Completed_Date'])) !== false && ($dueDate = strtotime($tasks[$index]['duedate'])) !== false) {
+                    $tasks[$index]['Days_Offset'] = (date("d", $completedDate - $dueDate) - 1) . ' days';
+                }
+                }else{
                 $tasks[$index]['Days_Offset'] = '';
             }
 
@@ -2751,9 +2785,12 @@ class Team_management_model extends App_Model
     
 
     public function check_staff_late($staff_id, $date){
+
+
         // First, fetch the shifts for the given staff and date
-        $query = "SELECT * FROM tbl_staff_shifts WHERE staff_id = ? AND YEAR = YEAR(?) AND month = MONTH(?) AND day = DAY(?) ORDER BY shift_number ASC";
+        $query = "SELECT * FROM tbl_staff_shifts WHERE staff_id = ? AND Year = YEAR(?) AND month = MONTH(?) AND day = DAY(?) ORDER BY shift_number ASC";
         $shifts = $this->db->query($query, [$staff_id, $date, $date, $date])->result();
+
         
         // Fetch clock_in times for the given staff and date
         $query = "SELECT * FROM tbl_staff_time_entries WHERE staff_id = ? AND DATE(clock_in) = ? ORDER BY clock_in ASC";
@@ -2761,6 +2798,10 @@ class Team_management_model extends App_Model
         
         $late_shifts = [];
         $overall_late = false;
+
+        if(count($entries) <= 0){
+            return ['status' => 'absent'];
+        }
     
         foreach ($shifts as $index => $shift) {
             $shift_start = new DateTime($date . ' ' . $shift->shift_start_time);
@@ -2779,14 +2820,10 @@ class Team_management_model extends App_Model
                 $is_direct = true;
             } else {
                 // In case of consecutive shifts without clock_out, use the last clock_in and clock_out
-                if(end($entries)->clock_in){
-                    $clock_in = new DateTime(end($entries)->clock_in);
-                    $clock_out = isset(end($entries)->clock_out) ? new DateTime(end($entries)->clock_out) : new DateTime();
-                    $is_direct = false;
-                }else{
-                    return ['status' => 'absent'];
-                }
-                
+               $clock_in = new DateTime(end($entries)->clock_in);
+               $clock_out = isset(end($entries)->clock_out) ? new DateTime(end($entries)->clock_out) :new DateTime();
+               $is_direct = false;
+    
             }
             
             $late = $clock_in > $shift_start;
@@ -2803,6 +2840,7 @@ class Team_management_model extends App_Model
             if (!$is_direct && $clock_out && ($clock_out < $shift_start)) {
                 // $late = $late && !($clock_in <= $shift_start && $clock_out >= $shift_start);
                 $late_shifts[] = ['status' => 'absent', 'shift' => $shift->shift_number];
+                
             }else{
 
                 if ($late) {
@@ -2812,11 +2850,15 @@ class Team_management_model extends App_Model
                 } else {
                     $late_shifts[] = ['status' => 'present', 'shift' => $shift->shift_number, 'difference' => $difference];
                 }
-
+                
             }
+            
         }
 
-        return ['status' => $overall_late ? 'late' : 'present', 'shifts' => $late_shifts];
+        
+
+        $status = $overall_late ? 'late' : 'present';
+        return ['status' => $status, 'shifts' => $late_shifts];
     }
     
 
@@ -2846,6 +2888,119 @@ class Team_management_model extends App_Model
         }
     }
     
-       
+
+    public function flash_stats($date) {
+        // Initialize counters for each status category
+        $counters = [
+            'leave' => 0,
+            'absent' => 0,
+            'present' => 0,
+            'late' => 0
+        ];
     
+        // Step 1: Select all active staff members
+        $this->db->select('staffid');
+        $this->db->from('tblstaff');
+        $this->db->where('active', 1);
+        $query = $this->db->get();
+        $active_staff = $query->result_array();
+    
+        // Step 2: Loop through active staff members to check their statuses
+        foreach ($active_staff as $staff) {
+            $staff_id = $staff['staffid'];
+    
+            // Check if staff is on leave
+            if ($this->is_on_leave($staff_id, $date)) {
+                $counters['leave']++;
+                continue;
+            }
+    
+            // Use the check_staff_late function to get the status
+            $result = $this->check_staff_late($staff_id, $date);
+            if (isset($result['status'])) {
+                $status = $result['status'];
+                $counters[$status]++;
+            }
+        }
+    
+        return $counters;
+    }
+    
+    public function get_summary_ratio($date) {
+        // Get total number of active staff
+        $this->db->where('active', 1);
+        $total_staff = $this->db->count_all_results('tblstaff');
+        
+        // Get the number of staff who have added summaries for the specific date
+        $this->db->distinct();
+        $this->db->select('staff_id');
+        $this->db->where('date', $date);
+        $this->db->from('tbl_staff_summaries');
+        $staff_with_summaries = $this->db->count_all_results();
+        
+        if ($total_staff == 0) {
+            return 0; // Prevent division by zero
+        }
+        
+        return ['staff_with_summaries' => $staff_with_summaries, 'total_staff' => $total_staff]; // Round to two decimal places
+    }
+
+    public function get_monthly_attendance_stats($month, $year) {
+        $num_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $attendance_stats = [
+            'present' => array_fill(1, $num_days, 0),
+            'absent' => array_fill(1, $num_days, 0),
+            'late' => array_fill(1, $num_days, 0),
+            'leave' => array_fill(1, $num_days, 0)
+        ];
+
+        $today = date("Y-m-d");
+    
+        for ($day = 1; $day <= $num_days; $day++) {
+            $date = "$year-$month-$day";
+            $active_staff = $this->db->select('staffid')->from('tblstaff')->where('active', 1)->get()->result_array();
+
+            if(strtotime($date) > strtotime($today)){
+                continue;
+            }
+            
+            foreach ($active_staff as $staff) {
+                $staff_id = $staff['staffid'];
+                if ($this->is_on_leave($staff_id, $date)) {
+                    $attendance_stats['leave'][$day]++;
+                } else {
+                    $status = $this->check_staff_late($staff_id, $date)['status'];
+                    $attendance_stats[$status][$day]++;
+                }
+            }
+        }
+        return $attendance_stats;
+    }
+    
+    public function get_task_stats_by_staff_date($staff_id, $date)
+    {
+        $tasks = $this->get_tasks_by_staff_member($staff_id);
+
+        $total_tasks = 0;
+        $completed_tasks = 0;
+
+        foreach ($tasks as $task) {
+            $taskDueConsideration = ($task->duedate) ? $task->duedate : $task->startdate;
+
+            if (
+                (strtotime($task->startdate) <= strtotime($date) && strtotime($taskDueConsideration) >= strtotime($date))
+                ||
+                (strtotime($task->startdate) <= strtotime($date) && $task->status != 5 && strtotime($taskDueConsideration) < strtotime($date))
+            )
+            {
+                $total_tasks++;
+                if ($task->status == 5) {
+                    $completed_tasks++;
+                }
+            }
+        }
+
+        return array('total_tasks' => $total_tasks, 'completed_tasks' => $completed_tasks);
+    }
+
 }

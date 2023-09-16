@@ -222,13 +222,20 @@ function formatShift($shiftNumer)
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="text-sm font-medium text-gray-700">
-                            <th class="px-4 py-2 border-b-2 border-gray-200">NAME</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">SHIFT  TIMINGS</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">TIMES CLOCKED IN</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">TOTAL SHIFT TIME</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">TOTAL TIME CLOCKED IN</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">TASK RATE</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">SUMMARY</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Shift Timings</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Times Clocked in</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                 Total Shift Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Total Time Clocked in</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Task Rate</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions</th>
                         </tr>
                     </thead>
 
@@ -243,8 +250,7 @@ function formatShift($shiftNumer)
                             </td>
                             <td class="border px-4 py-2">
                                 <?php 
-                                // var_dump($shift_timings_daywise);
-                                 $staff_id = $staff['staffid'];
+                                $staff_id = $staff['staffid'];
                                 if (isset($shift_timings_daywise[$staff_id])) {
                                     $time_strings = [];
                                     foreach ($shift_timings_daywise[$staff_id] as $timing) {
@@ -279,7 +285,10 @@ function formatShift($shiftNumer)
                                 <?=  $staff['task_rate'] ?>
                             </td>
                             <td class="border px-4 py-2">
-                                <a href="#" class="text-blue-500" data-staffname="<?= $staff['firstname'] ?>" data-staffid="<?= $staff['staffid'] ?>" data-toggle="modal" data-target="#dailySummaryModal">Summary</a>
+                                <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" data-staffname="<?= $staff['firstname'] ?>" data-staffid="<?= $staff['staffid'] ?>" data-toggle="modal" data-target="#dailySummaryModal"><i class="fa fa-list-alt"></i></a>
+                                <!-- <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="fetchDailyInfo(<?= $staff['date'] ?>)"><i class="fa fa-chart-bar"></i></button> -->
+
+
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -391,7 +400,6 @@ function formatShift($shiftNumer)
 
 <script>
 
-    
     $('#dailySummaryModal').on('show.bs.modal', function (event) {
       const button = $(event.relatedTarget);
       const staffId = button.data('staffid');

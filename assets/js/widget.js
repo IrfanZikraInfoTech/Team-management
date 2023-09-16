@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     //setTimeout(function(){
     
-    if (document.body.classList.contains('dashboard')) {
+    if (document.body.classList.contains('dashboard') && !document.body.classList.contains('team_management')) {
 
     
         

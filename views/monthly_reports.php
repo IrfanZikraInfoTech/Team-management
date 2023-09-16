@@ -114,10 +114,12 @@ function formatShift($shiftNumer)
             <?php if (!empty($report_data['most_eff_staff_member'])): ?>
 
             <div class="text-2xl flex align-center justify-between">
-                <div class="my-auto"><?= $report_data['most_eff_staff_member']->firstname ?></div>
-                <div title="<?= $report_data['most_eff_staff_member']->firstname ?>" data-toggle="tooltip" data-placement="top">
-                        <?= staff_profile_image($report_data['most_eff_staff_member']->staffid, ['border-2 border-solid object-cover w-12 h-full staff-profile-image-thumb'], 'thumb'); ?>
-                    </div>
+                <div class="my-auto">
+                    <?= isset($report_data['most_eff_staff_member']->firstname) ? $report_data['most_eff_staff_member']->firstname : 'Default Value' ?>
+                </div>
+                <div title="<?= isset($report_data['most_eff_staff_member']->firstname) ? $report_data['most_eff_staff_member']->firstname : 'Default Value' ?>" data-toggle="tooltip" data-placement="top">
+                    <?= isset($report_data['most_eff_staff_member']->staffid) ? staff_profile_image($report_data['most_eff_staff_member']->staffid, ['border-2 border-solid object-cover w-12 h-full staff-profile-image-thumb'], 'thumb') : '' ?>
+                </div>
             </div>
 
             <?php else: ?>

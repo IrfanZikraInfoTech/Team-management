@@ -111,9 +111,11 @@
                                     Day</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift Timings</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Times Clocked In</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time Clocked In</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Shift Time</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Time on Tasks</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task Rate</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -123,9 +125,11 @@
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['day_date'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['shift_timings'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['clock_times'] ?></td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['status']['status']; ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_clock_in_time'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_shift_duration'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['total_task_time'] ?></td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $stat['task_rate'] ?></td>
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500 flex flex-row gap-2">
                                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="fetchDailyInfo(<?= $stat['day'] ?>)"><i class="fa fa-chart-bar"></i></button>
                                         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded" onclick="fetchSummary(<?= $stat['day'] ?>)"><i class="fa fa-list-alt"></i></button>
@@ -315,24 +319,20 @@
                             <?php foreach ($all_months_tasks as $task): ?>
 
                                 <?php
-                                if($task['Completed_Date']){
-                                    if(strtotime($task['duedate']) >= strtotime($task['Completed_Date']))
-                                    {
-                                        $taskBG = 'bg-emerald-100/70';
-                                    }else{
-                                        $taskBG = 'bg-red-100/70';
+                                    if (isset($task['Completed_Date'])) {
+                                        if (isset($task['duedate']) && strtotime($task['duedate']) >= strtotime($task['Completed_Date'])) {
+                                            $taskBG = 'bg-emerald-100/70';
+                                        } else {
+                                            $taskBG = 'bg-red-100/70';
+                                        }
+                                    } else {
+                                        if (isset($task['duedate']) && strtotime($task['duedate']) >= strtotime(date("Y-m-d"))) {
+                                            $taskBG = 'bg-white';
+                                        } else {
+                                            $taskBG = 'bg-red-100/70';
+                                        }
                                     }
-                                }else{
-                                    if(strtotime($task['duedate']) >= strtotime(date("Y-m-d")))
-                                    {
-                                        $taskBG = 'bg-white';
-                                    }else{
-                                        $taskBG = 'bg-red-100/70';
-                                    }
-                                }
-                                
                                 ?>
-
                                 <tr class="hover:bg-gray-100 transition-all <?= $taskBG?>">
 
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['task_id'] ?></td>
@@ -352,7 +352,7 @@
 
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['Total_Time_Taken'] ?></td>
 
-                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['Days_Offset'] ?></td>
+                                    <!-- <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500"><?= $task['Days_Offset'] ?></td> -->
 
                                 </tr>
                             <?php endforeach; ?>
@@ -504,6 +504,7 @@
 <?php init_tail(); ?>
 
 <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
 
 function fetchSummary(day){
 
@@ -547,86 +548,85 @@ function fetchSummary(day){
 }
 
 
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
-<script>
-function fetchDailyInfo(day) {
-
-    const staff_id = <?= $staff_id_this; ?> // Replace with the actual staff ID
-    const currentDate = new Date();
-    const month = <?= $month_this; ?>;
-    const year = currentDate.getFullYear();
-
-    const monthStr = month < 10 ? `0${month}` : `${month}`;
-    const dayStr = day < 10 ? `0${day}` : `${day}`;
-
-    const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
-    const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
-
-    // Setting the focus
-    timeline.setWindow(startDate, endDate);
 
 
-    $.ajax({
-        url: admin_url + 'team_management/fetch_daily_info/',
-        type: 'POST',
-        data: {
-            staff_id: staff_id,
-            day: day,
-            month: month,
-            year: year,
-            [csrfData.token_name]: csrfData.hash,
-        },
-        dataType: 'json',
-        success: function (data) {
-            console.log(data);
+    function fetchDailyInfo(day) {
 
-            $("#stats_daily_title").html(" :: " + day + "/" + month + "/" + <?= date('Y') ?>);
+        const staff_id = <?= $staff_id_this; ?> // Replace with the actual staff ID
+        const currentDate = new Date();
+        const month = <?= $month_this; ?>;
+        const year = currentDate.getFullYear();
 
-            $('#total_clock_in_time_day').html(data.total_clocked_in_time);
-            $('#total_shift_duration').html(data.total_shift_duration);
-            $('#total_task_time').html(data.total_task_time);
+        const monthStr = month < 10 ? `0${month}` : `${month}`;
+        const dayStr = day < 10 ? `0${day}` : `${day}`;
 
-            $('#total_no_tasks_day').html(data.total_no_tasks + " tasks");
-            $('#total_completed_tasks_day').html(data.total_completed_tasks + " tasks");
-            $('#tasks_rate_day').html(data.tasks_rate + "%");
+        const startDate = new Date(`${year}-${monthStr}-${dayStr}T00:00:00`);
+        const endDate = new Date(`${year}-${monthStr}-${dayStr}T23:59:59`);
+
+        // Setting the focus
+        timeline.setWindow(startDate, endDate);
 
 
-            $('#on_leave').html(data.on_leave ? 'Yes' : 'No');
+        $.ajax({
+            url: admin_url + 'team_management/fetch_daily_info/',
+            type: 'POST',
+            data: {
+                staff_id: staff_id,
+                day: day,
+                month: month,
+                year: year,
+                [csrfData.token_name]: csrfData.hash,
+            },
+            dataType: 'json',
+            success: function (data) {
+                console.log(data);
 
-            const afk_entries = data.afk_and_offline.filter(entry => entry.status === 'AFK');
-            const offline_entries = data.afk_and_offline.filter(entry => entry.status === 'Offline');
+                $("#stats_daily_title").html(" :: " + day + "/" + month + "/" + <?= date('Y') ?>);
 
-            const monthDigit = month.toLocaleString('en-US', {
-                minimumIntegerDigits: 2,
-                useGrouping: false
-            });
+                $('#total_clock_in_time_day').html(data.total_clocked_in_time);
+                $('#total_shift_duration').html(data.total_shift_duration);
+                $('#total_task_time').html(data.total_task_time);
 
-            const afk_rows = generateStatusRows(afk_entries);
-            const offline_rows = generateStatusRows(offline_entries);
-            const tasks_rows = generateTasksRows(data.task_timers);
-            const all_tasks_rows = generateAllTasksRows(data.all_tasks, year+"-"+monthDigit+"-"+day);
+                $('#total_no_tasks_day').html(data.total_no_tasks + " tasks");
+                $('#total_completed_tasks_day').html(data.total_completed_tasks + " tasks");
+                $('#tasks_rate_day').html(data.tasks_rate + "%");
 
-            (afk_rows != "") ? $('#afk_time_table').html(afk_rows) : $('#afk_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
-            
-            (offline_rows != "") ? $('#offline_time_table').html(offline_rows) : $('#offline_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
 
-            (tasks_rows != "") ? $('#tbl_tasks_activity').html(tasks_rows) : $('#tbl_tasks_activity').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+                $('#on_leave').html(data.on_leave ? 'Yes' : 'No');
 
-            (all_tasks_rows != "") ? $('#tbl_all_tasks').html(all_tasks_rows) : $('#tbl_all_tasks').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+                const afk_entries = data.afk_and_offline.filter(entry => entry.status === 'AFK');
+                const offline_entries = data.afk_and_offline.filter(entry => entry.status === 'Offline');
 
-            
-            var targetDiv = $('#stats-per-day'); // Replace 'your-target-div-id' with the actual div id
-            $('html, body').animate({
-                scrollTop: targetDiv.offset().top
-            }, 1000);
+                const monthDigit = month.toLocaleString('en-US', {
+                    minimumIntegerDigits: 2,
+                    useGrouping: false
+                });
 
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            console.error('Error fetching daily stats:', textStatus, errorThrown);
-        }
-    });
-}
+                const afk_rows = generateStatusRows(afk_entries);
+                const offline_rows = generateStatusRows(offline_entries);
+                const tasks_rows = generateTasksRows(data.task_timers);
+                const all_tasks_rows = generateAllTasksRows(data.all_tasks, year+"-"+monthDigit+"-"+day);
+
+                (afk_rows != "") ? $('#afk_time_table').html(afk_rows) : $('#afk_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+                
+                (offline_rows != "") ? $('#offline_time_table').html(offline_rows) : $('#offline_time_table').html("<tr><td colspan='3' class='px-4 py-2'>No Data</td></tr>");
+
+                (tasks_rows != "") ? $('#tbl_tasks_activity').html(tasks_rows) : $('#tbl_tasks_activity').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+                (all_tasks_rows != "") ? $('#tbl_all_tasks').html(all_tasks_rows) : $('#tbl_all_tasks').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
+
+                
+                var targetDiv = $('#stats-per-day'); // Replace 'your-target-div-id' with the actual div id
+                $('html, body').animate({
+                    scrollTop: targetDiv.offset().top
+                }, 1000);
+
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.error('Error fetching daily stats:', textStatus, errorThrown);
+            }
+        });
+    }
 
 function generateStatusRows(entries) {
     let rows = '';
