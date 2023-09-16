@@ -125,6 +125,13 @@ function formatShift($shiftNumer)
             <?php endif; ?>
         </div>
 
+        <div class="w-full p-5 my-5 bg-white shadow rounded p-4 col-span-2">
+            <h2 class="card-title ms-1 text-uppercase text-center mb-4" style="font-weight: bold; color: #343a40; letter-spacing: 1.5px;">Organizational Report</h2>
+            <div class="d-flex justify-content-center">
+                <canvas id="monthlyTimingsChart" style="width: 100%; height: 400px;"></canvas>
+            </div>
+        </div>
+
         <!-- All Staff Members -->
         <div class="bg-white shadow rounded p-4 col-span-2">
             <h2 class="text-xl font-semibold mb-4">Staff Members</h2>
@@ -253,7 +260,51 @@ function formatShift($shiftNumer)
 
 <?php init_tail(); ?>
 
+
 <script>
+// First, get PHP data into JavaScript variables and convert seconds to hours
+let actualTotalLoggedInTimeArray = [
+    <?php 
+        foreach($report_data['all_daily_reports'] as $day => $daily_report) {
+            $hours = $daily_report['actual_total_logged_in_time'] / 3600; // Convert seconds to hours
+            echo $hours . ',';
+        } 
+    ?>
+];
+
+let ctx = document.getElementById('monthlyTimingsChart').getContext('2d');
+
+// Create the bar chart
+let monthlyTimingsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: Array.from({ length: actualTotalLoggedInTimeArray.length }, (_, i) => i + 1),
+        datasets: [{
+            label: 'Actual Logged-in Time',
+            data: actualTotalLoggedInTimeArray,
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                max:2,  // Set the max value of y-axis to 8
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value, index, values) {
+                        return value + ' hours';
+                    }
+                }
+            }
+        }
+    }
+});
+
+
 $(document).ready(function() {
     $('#allTasks').DataTable({
         initComplete: function() {
@@ -282,4 +333,4 @@ function changeReport() {
 }
 </script>
 </body>
-</html>
+</html> 

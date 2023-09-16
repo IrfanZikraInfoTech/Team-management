@@ -237,7 +237,6 @@ class Team_management extends AdminController {
 
     public function monthly_reports($year, $month)
     {
-        
         $report_data = $this->team_management_model->get_monthly_report_data($month, $year);
 
         // Pass the data to your view

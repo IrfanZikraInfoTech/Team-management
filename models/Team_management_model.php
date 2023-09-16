@@ -2055,11 +2055,23 @@ class Team_management_model extends App_Model
             $task['staff'] = $this->get_staff_members_for_task_month($task['task_id'], $month, $year);
         }
 
+        // Get the number of days in the month
+        $num_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
+        // Initialize an array to hold all daily reports
+        $report_data['all_daily_reports'] = [];
+
+        // Loop through all days in the month
+        for ($day = 1; $day <= $num_days; $day++) {
+            $daily_report = $this->get_daily_report_data($month, $day);
+            $report_data['all_daily_reports'][$day] = $daily_report;
+        }
+        
         $report_data['most_clocked_in_staff_member'] = $this->get_most_clocked_in_staff_member_monthly($start_date, $end_date);
 
         $report_data['all_staff'] = $all_staff_global;
         
+
 
         // $most_eff_staff_member = (object) $most_eff_staff_member;
         // if(!$most_eff_staff_member) {
