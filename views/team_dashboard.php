@@ -2,47 +2,54 @@
 <?php init_head(); ?>
 
 <div id="wrapper">
-<div class="flex flex-row justify-between mb-6">
-        <div class="max-w-sm flex flex-row gap-2">
-            <input type="date" id="date-input" class="block appearance-none w-full bg-white  border border-gray-400 hover:border-gray-500 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline" value="<?= date("Y") . '-' .$thisMonth.'-'.$thisDay?>">
-            <button onclick="changeReport();" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow">Search</button>
-        </div>
-    </div>
   <div class="content">
       <!-- Create the container for the stats -->
       <div class="flex justify-between items-center p-4 gap-4">
-
          <!-- Present Card -->
-         <div class="bg-white border-solid border-gray-200 hover:border-green-500 border-2 p-6 rounded-lg w-full shadow-lg transform hover:-translate-y-2 transition-all ease-in-out duration-300">
-            <i class="fas fa-check text-green-500"></i>
-            <h2 class="text-2xl font-semibold">Present</h2>
-            <p class="text-4xl font-bold"><?php echo $flash_stats['present']; ?></p>
+         <div data-type="present" class="bg-white border-solid border-gray-200 hover:border-green-500 border-2 p-6 rounded-lg w-full shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all ease-in-out duration-300 cursor-pointer ">
+            <div class="flex justify-between">
+                  <div>
+                     <h2 class="text-2xl font-semibold">Present</h2>
+                     <p class="text-4xl font-bold"><?php echo $flash_stats['present']; ?></p>
+                  </div>
+                  <i class="fas fa-check text-green-500 hover:text-green-600"></i>
+            </div>
          </div>
          
          <!-- Absent Card -->
-         <div class="bg-white border-solid border-gray-200 hover:border-red-500 border-2 p-6 rounded-lg w-full shadow-lg transform hover:-translate-y-2 transition-all ease-in-out duration-300">
-            <i class="fas fa-bed text-red-500"></i>
-            <h2 class="text-2xl font-semibold">Absent</h2>
-            <p class="text-4xl font-bold"><?php echo $flash_stats['absent']; ?></p>
+         <div data-type="absent" class="bg-white border-solid border-gray-200 hover:border-red-500 border-2 p-6 rounded-lg w-full shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all ease-in-out duration-300 cursor-pointer">
+            <div class="flex justify-between">
+                  <div>
+                     <h2 class="text-2xl font-semibold">Absent</h2>
+                     <p class="text-4xl font-bold"><?php echo $flash_stats['absent']; ?></p>
+                  </div>
+                  <i class="fas fa-bed text-red-500 hover:text-red-600"></i>
+            </div>
          </div>
-
-      
-
+         
          <!-- Late Card -->
-         <div class="bg-white border-solid border-gray-200 hover:border-yellow-500 border-2 p-6 rounded-lg w-full shadow-lg transform hover:-translate-y-2 transition-all ease-in-out duration-300">
-            <i class="fas fa-clock text-yellow-500"></i>
-            <h2 class="text-2xl font-semibold">Late</h2>
-            <p class="text-4xl font-bold"><?php echo $flash_stats['late']; ?></p>
+         <div data-type="late" class="bg-white border-solid border-gray-200 hover:border-yellow-500 border-2 p-6 rounded-lg w-full shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all ease-in-out duration-300 cursor-pointer">
+            <div class="flex justify-between">
+                  <div>
+                     <h2 class="text-2xl font-semibold">Late</h2>
+                     <p class="text-4xl font-bold"><?php echo $flash_stats['late']; ?></p>
+                  </div>
+                  <i class="fas fa-clock text-yellow-500 hover:text-yellow-600"></i>
+            </div>
          </div>
 
          <!-- Leave Card -->
-         <div class="bg-white border-solid border-gray-200 hover:border-blue-500 border-2 p-6 rounded-lg w-full shadow-lg transform hover:-translate-y-2 transition-all ease-in-out duration-300">
-            <i class="fas fa-plane-departure text-blue-500"></i>
-            <h2 class="text-2xl font-semibold">On Leave</h2>
-            <p class="text-4xl font-bold"><?php echo $flash_stats['leave']; ?></p>
+         <div data-type="leave" class="bg-white border-solid border-gray-200 hover:border-blue-500 border-2 p-6 rounded-lg w-full shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all ease-in-out duration-300">
+            <div class="flex justify-between">
+                  <div>
+                     <h2 class="text-2xl font-semibold">On Leave</h2>
+                     <p class="text-4xl font-bold"><?php echo $flash_stats['leave']; ?></p>
+                  </div>
+                  <i class="fas fa-plane-departure text-blue-500 hover:text-blue-600"></i>
+            </div>
          </div>
-         
       </div>
+
 
       <div class="flex flex-row p-4 gap-8">
          <div class="flex flex-col justify-center gap-20 mt-8 w-1/3">
@@ -95,22 +102,76 @@
 
 </div>
 
+
+<!-- modal code  -->
+<div class="modal fade" id="staffModal" tabindex="-1" role="dialog" aria-labelledby="staffModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content bg-white rounded-lg shadow-xl">
+      <div class="modal-header bg-gray-200 p-4 flex justify-between items-center">
+        <div></div> <!-- Empty div for flex justification -->
+        <h5 class="modal-title text-2xl font-semibold text-gray-700 mx-auto" id="staffModalLabel"></h5>
+        <button type="button" class="close text-gray-600 hover:text-gray-800 text-2xl" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true" class="hover:text-red-500">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body p-6 text-lg">
+        <!-- Staff names will go here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
 <?php init_tail(); ?>
 
 <script>
-   function changeReport() {
-    var date = document.getElementById("date-input").value;
+var staffNames = <?php echo json_encode($flash_staff_names); ?>;
 
-    $.ajax({
-        url: "<?=admin_url('team_management/dashboard')?>",
-        method: "POST",
-        data: { date: date },
-        success: function(response) {
-            // Update your DOM here, assuming 'response' contains the updated 'flash_stats'
-            document.querySelector('.text-4xl').textContent = response.present;
-        }
-    });
-}
+// $(document).ready(function() {
+//   $("div[data-type]").click(function() {
+//     const cardType = $(this).data("type");
+    
+//     let staffNamesForType = staffNames[cardType] || [];
+//     let content = "";
+    
+//     for(let i = 0; i < staffNamesForType.length; i++) {
+//       content += "<p>" + staffNamesForType[i] + "</p>";
+//     }
+
+//     $("#staffModal .modal-body").html(content);
+//     $("#staffModalLabel").text(cardType.charAt(0).toUpperCase() + cardType.slice(1) + " Staff");
+//     $("#staffModal").modal("show");
+//   });
+// });
+$(document).ready(function() {
+  $("div[data-type]").click(function() {
+    const cardType = $(this).data("type");
+    
+    let staffNamesForType = staffNames[cardType] || [];
+    let content = "";
+
+    if (staffNamesForType.length === 0) {
+      content = "<p>No Staff Available</p>"; // Message when no staff are available
+    } else {
+      content = "<ul>"; // Initialize as an unordered list
+      
+      for(let i = 0; i < staffNamesForType.length; i++) {
+        content += "<li><strong>" + staffNamesForType[i] + "</strong></li>"; // Add list items with strong tags for bold text
+      }
+  
+      content += "</ul>"; // Close the unordered list
+    }
+    
+    $("#staffModal .modal-body").html(content);
+    $("#staffModalLabel").text(cardType.charAt(0).toUpperCase() + cardType.slice(1) + " Staff");
+    $("#staffModal").modal("show");
+  });
+});
+
+
+
 
 
 const commonConfig = {

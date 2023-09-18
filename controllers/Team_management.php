@@ -34,11 +34,10 @@ class Team_management extends AdminController {
         $date = $this->input->post('date') ?? date("Y-m-d");
         $month = date("m");
         $year = date("Y");
-        if ($this->input->is_ajax_request()) {
-            // If it's an AJAX request, return the needed data as JSON
-            echo json_encode($flash_stats);
-        } else {
-        $data['flash_stats'] = $this->team_management_model->flash_stats($date);
+
+        $flash_data = $this->team_management_model->flash_stats($date);
+        $data['flash_stats'] = $flash_data['counters'];
+        $data['flash_staff_names'] = $flash_data['staffNames'];
         $data['monthly_stats'] = $this->team_management_model->get_monthly_attendance_stats($month, $year);
 
         $report_data = $this->team_management_model->get_daily_report_data(date('m'), date('d'));
@@ -53,10 +52,12 @@ class Team_management extends AdminController {
         }
 
         $data['staff_task_stats'] = $staff_task_stats;
+        $this->load->view('team_dashboard', $data);
+
     }
 
-        $this->load->view('team_dashboard', $data);
-    }
+
+
 
     public function team_stats()
     {
