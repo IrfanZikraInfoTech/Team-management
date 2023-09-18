@@ -2876,7 +2876,7 @@ class Team_management_model extends App_Model
         ];
     
         // Step 1: Select all active staff members
-        $this->db->select('staffid');
+        $this->db->select('staffid,firstname, lastname');
         $this->db->from('tblstaff');
         $this->db->where('active', 1);
         $query = $this->db->get();

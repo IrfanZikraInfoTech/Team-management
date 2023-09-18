@@ -120,15 +120,13 @@ function formatShift($shiftNumer)
 
                 <?php if (!empty($report_data['on_timers'])): ?>
                     <?php foreach ($report_data['on_timers'] as $comer) : ?>
-                        <div title="<?= $comer->firstname ?>" data-toggle="tooltip" data-placement="top">
+                        <div class="hoverDiv" data-staffid="<?= $comer->staffid ?>" title="<?= $comer->firstname ?> <?php foreach ($comer->late_status['shifts'] as $shift): ?>Shift <?= $shift['shift'] ?>: <?= isset($shift['difference']) && is_numeric($shift['difference']) ? convertSecondsToRoundedTime($shift['difference']) : (isset($shift['difference']) ? $shift['difference'] : 'N/A'); ?>&#13;&#10;<?php endforeach; ?>" data-toggle="tooltip" data-placement="top">
                             <?= staff_profile_image($comer->staffid, ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <p>No on-timers</p>
                 <?php endif; ?>
-
-
                 </div>
             </div>
         </div>
@@ -142,7 +140,7 @@ function formatShift($shiftNumer)
 
                 <?php if (!empty($report_data['late_joiners'])): ?>
                     <?php foreach ($report_data['late_joiners'] as $late_joiner) : ?>
-                        <div title="<?= $late_joiner->firstname; ?>" data-toggle="tooltip" data-placement="top">
+                        <div class="hoverDiv" data-staffid="<?= $late_joiner->staffid ?>" title="<?= $late_joiner->firstname; ?>&#13;&#10;<?php foreach ($late_joiner->late_status['shifts'] as $shift): ?>Shift <?= $shift['shift'] ?>: <?= isset($shift['difference']) && is_numeric($shift['difference']) ? convertSecondsToRoundedTime($shift['difference']) : (isset($shift['difference']) ? $shift['difference'] : 'N/A'); ?>&#13;&#10;<?php endforeach; ?>" data-toggle="tooltip" data-placement="top">
                             <?= staff_profile_image($late_joiner->staffid, ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb'); ?>
                         </div>
                     <?php endforeach; ?>
@@ -566,6 +564,7 @@ $(document).ready(function(){
         $('#modalContent').html("Staff ID: " + staffId);  // Populate the modal content
         $('#statsModal').data('staff-id', staffId);  // Set the staffId as a data attribute on the modal
         $('#statsModal').modal('show');  // Show the modal
+        $('#visualization').empty(); //add this line 
     });
 });
 

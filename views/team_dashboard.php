@@ -2,7 +2,12 @@
 <?php init_head(); ?>
 
 <div id="wrapper">
-
+<div class="flex flex-row justify-between mb-6">
+        <div class="max-w-sm flex flex-row gap-2">
+            <input type="date" id="date-input" class="block appearance-none w-full bg-white  border border-gray-400 hover:border-gray-500 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline" value="<?= date("Y") . '-' .$thisMonth.'-'.$thisDay?>">
+            <button onclick="changeReport();" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-400 rounded shadow">Search</button>
+        </div>
+    </div>
   <div class="content">
       <!-- Create the container for the stats -->
       <div class="flex justify-between items-center p-4 gap-4">
@@ -93,6 +98,20 @@
 <?php init_tail(); ?>
 
 <script>
+   function changeReport() {
+    var date = document.getElementById("date-input").value;
+
+    $.ajax({
+        url: "<?=admin_url('team_management/dashboard')?>",
+        method: "POST",
+        data: { date: date },
+        success: function(response) {
+            // Update your DOM here, assuming 'response' contains the updated 'flash_stats'
+            document.querySelector('.text-4xl').textContent = response.present;
+        }
+    });
+}
+
 
 const commonConfig = {
   type: 'doughnut',
