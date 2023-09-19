@@ -158,15 +158,32 @@
 </div>
 
 
-
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="staffNamesModal" tabindex="-1" role="dialog" aria-labelledby="staffNamesModalLabel" aria-hidden="true">
+<div class="modal-dialog" role="document">
+    <div class="modal-content bg-white rounded-lg shadow-xl">
+      <div class="modal-header bg-gray-200 p-4 flex justify-between items-center">
+        <h5  class="modal-title text-2xl font-semibold text-gray-700 mx-auto" id="staffNamesModalLabel">Staff Names</h5>
+        <button type="button" class="close text-gray-600 hover:text-gray-800 text-2xl" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true" class="hover:text-red-500">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body-content">
+        <!-- Staff names will be inserted here -->
+      </div>
+    </div>
+  </div>
+</div>
 
 
 <?php init_tail(); ?>
 
-<script>
-  
 
-  var staffNames = <?php echo json_encode($flash_staff_names); ?>;
+<script>
+
+  
+var staffNames = <?php echo json_encode($flash_staff_names); ?>;
+var staffImages = <?php echo json_encode($staff_images); ?>;
 
 $(document).ready(function() {
   $("div[data-type]").click(function() {
@@ -178,13 +195,33 @@ $(document).ready(function() {
     if (staffNamesForType.length === 0) {
       content = "<p>No Staff Available</p>"; // Message when no staff are available
     } else {
-      content = "<ul>"; // Initialize as an unordered list
+      content = "<ul>"; 
       
       for(let i = 0; i < staffNamesForType.length; i++) {
-        content += "<li><strong>" + staffNamesForType[i] + "</strong></li>"; // Add list items with strong tags for bold text
+    let staffId = staffNamesForType[i].id;
+    let staffName = staffNamesForType[i].name;
+    console.log('Staff ID:', staffId); 
+    console.log('Staff Name:', staffName); 
+
+
+    let staffImage = staffImages[staffId]; // Lookup image by ID now, not name
+
+    console.log('Staff Image:', staffImage);
+    console.log('All Staff Images:', staffImages);
+    console.log('All Staff Images:', staffImages);
+
+
+    content += `
+  <li class="mb-2"  >
+    <div class="inline-flex items-center">
+      ${staffImage}
+      <strong class="ml-2">${staffName}</strong>
+    </div>
+  </li>`;
       }
+
   
-      content += "</ul>"; // Close the unordered list
+      content += "</ul>"; 
     }
     
     $("#staffModal .modal-body").html(content);
@@ -192,9 +229,6 @@ $(document).ready(function() {
     $("#staffModal").modal("show");
   });
 });
-
-
-
 
 
 const commonConfig = {
@@ -223,6 +257,7 @@ new Chart(document.getElementById('taskGoalChart'), {
   }
 });
 
+
 new Chart(document.getElementById('clockInGoalChart'), {
   ...commonConfig,
   data: {
@@ -237,18 +272,169 @@ new Chart(document.getElementById('clockInGoalChart'), {
   }
 });
 
+
+// PHP variables injected into JavaScript
+let staffNamesAndIds = <?= json_encode($summary_ratio['staff_names_and_ids']) ?>;
+let allStaffNames = <?= json_encode($summary_ratio['all_staff_names']) ?>;
+let staffPics = <?= json_encode($staff_images) ?>;
+
+
+
+
+// Generate complete staff data for submitted and not submitted
+let submittedStaffData = staffNamesAndIds.map(staff => ({ 
+  name: staff.firstname, 
+  id: staff.staff_id,
+  image: staffPics[staff.staff_id] 
+}));
+
+let allStaffData = allStaffNames.map(staff => ({ 
+  name: staff.firstname, 
+  id: staff.staff_id,  // make sure these fields actually exist
+  image: staffPics[staff.staff_id]  // make sure these fields actually exist
+}));
+
+// Then filter that to create notSubmittedStaffData
+let notSubmittedStaffData = allStaffData.filter(staff => !submittedStaffData.map(s => s.name).includes(staff.name));
+
+console.log(submittedStaffData);
+console.log(allStaffData);
+console.log(notSubmittedStaffData);
+
+// Existing chart logic
+let totalStaff = <?= $summary_ratio['total_staff'] ?>;
+let staffWithSummaries = <?= $summary_ratio['staff_with_summaries'] ?>;
+let notSubmittedStaffCount = totalStaff - staffWithSummaries;
+
 new Chart(document.getElementById('summaryRatioChart'), {
   ...commonConfig,
   data: {
     labels: ['Submitted', 'Not Submitted'],
     datasets: [{
-      data: [<?= $summary_ratio['staff_with_summaries'] ?>, <?= $summary_ratio['total_staff'] ?> - <?= $summary_ratio['staff_with_summaries'] ?>],
+      data: [staffWithSummaries, notSubmittedStaffCount],
       backgroundColor: ['rgb(12, 186, 186, 0.3)', 'rgba(249, 57, 67,0.3)'],
       borderColor: ['rgb(12, 186, 186)', 'rgb(249, 57, 67)'],
       cutout: '80%',
     }]
+  },
+  options: {
+    ...commonConfig.options,
+    onClick: function(evt, item) {
+      if (item.length > 0) {
+        const index = item[0]._index;
+        const modalTitle = document.getElementById("staffNamesModalLabel");
+        let staffToShow = index === 0 ? submittedStaffData : notSubmittedStaffData;
+
+        modalTitle.textContent = index === 0 ? "Summary Submitted" : "Summary Not Submitted";
+
+        const ul = document.createElement("ul");
+        staffToShow.forEach(staff => {
+  const li = document.createElement("li");
+
+  // Create a DOM element from the image HTML string
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(staff.image, 'text/html');
+  const imgElem = doc.querySelector("img");
+  
+  // Updating image attributes (Optional)
+  imgElem.width = 40;
+  imgElem.classList.add("mr-2");
+
+  const nameElem = document.createElement("strong");
+  nameElem.textContent = staff.name;
+
+  const div = document.createElement("div");
+  div.classList.add("inline-flex", "items-center");
+  div.appendChild(imgElem);
+  div.appendChild(nameElem);
+
+  li.appendChild(div);
+  ul.appendChild(li);
+});
+
+
+        const modalContent = document.getElementById("modal-body-content");
+        modalContent.innerHTML = "";
+        modalContent.appendChild(ul);
+        $('#staffNamesModal').modal('show');
+      }
+    }
   }
 });
+
+
+// let staffNamesAndIds = <?= json_encode($summary_ratio['staff_names_and_ids']) ?>;
+// let allStaffNames = <?= json_encode($summary_ratio['all_staff_names']) ?>.map(staff => staff.firstname);
+// console.log("All Staff Names:", allStaffNames);
+// let staffProfilePics = <?= json_encode($staff_images) ?>;  // Variable name changed here
+
+
+// let submittedStaffNames = staffNamesAndIds.map(staff => staff.firstname);
+// console.log("Submitted Staff Names:", submittedStaffNames);
+
+// // Calculate notSubmittedStaffNames by removing submitted names from all staff names
+// let notSubmittedStaffNames = allStaffNames.filter(name => !submittedStaffNames.includes(name));
+// console.log("Not Submitted Staff Names:", notSubmittedStaffNames);
+
+// let totalStaff = <?= $summary_ratio['total_staff'] ?>;
+// let staffWithSummaries = <?= $summary_ratio['staff_with_summaries'] ?>;
+// let notSubmittedStaffCount = totalStaff - staffWithSummaries;
+
+// new Chart(document.getElementById('summaryRatioChart'), {
+//   ...commonConfig,
+//   data: {
+//     labels: ['Submitted', 'Not Submitted'],
+//     datasets: [{
+//       data: [staffWithSummaries, notSubmittedStaffCount],
+//       backgroundColor: ['rgb(12, 186, 186, 0.3)', 'rgba(249, 57, 67,0.3)'],
+//       borderColor: ['rgb(12, 186, 186)', 'rgb(249, 57, 67)'],
+//       cutout: '80%',
+//     }]
+//   },
+//   options: {
+//     ...commonConfig.options,
+
+//   onClick: function(evt, item) {
+//   console.log("Chart clicked");
+//   if (item.length > 0) {
+//     console.log("Item length is greater than 0");
+//     const index = item[0]._index;
+//     console.log("Clicked index:", index);
+
+//     let namesToShow = [];
+//     const modalTitle = document.getElementById("staffNamesModalLabel");
+
+//     if (index === 0) {
+//       namesToShow = submittedStaffNames;
+//       modalTitle.textContent = "Summary Submitted";
+//     } else {
+//       namesToShow = notSubmittedStaffNames;
+//       modalTitle.textContent = "Summary Not Submitted";
+//     }
+
+//     // Create ordered list from namesToShow array
+//     const ol = document.createElement("ol");
+//     namesToShow.forEach(name => {
+//       const li = document.createElement("li");
+//       li.appendChild(document.createTextNode(name));
+//       ol.appendChild(li);
+//     });
+//     let staffObj = staffNamesAndIds.find(staff => staff.firstname === name);
+//     const modalContent = document.getElementById("modal-body-content");
+//     modalContent.innerHTML = "";  // Clear any existing content
+//     modalContent.appendChild(ol); // Add the ordered list
+//     console.log("Modal content set");
+//     $('#staffNamesModal').modal('show');
+//   }
+// }
+
+// }
+
+// });
+
+
+
+
 
 
 // Preparing your dataset from PHP associative array to JavaScript object

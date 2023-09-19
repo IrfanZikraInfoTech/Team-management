@@ -48,7 +48,8 @@ class Team_management extends AdminController {
 
         $report_data = $this->team_management_model->get_daily_report_data(date('m'), date('d'));
         $data['report_data'] = $report_data;
-        $data['summary_ratio'] = $this->team_management_model->get_summary_ratio($date);
+        $data['summary_ratio'] = $this->team_management_model->get_summary_ratio_and_names($date);
+       
 
         $all_staff_ids = $this->team_management_model->get_all_staff();
 

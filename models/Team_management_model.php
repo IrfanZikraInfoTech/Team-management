@@ -2904,6 +2904,9 @@ class Team_management_model extends App_Model
             if (isset($result['status'])) {
                 $status = $result['status'];
                 $counters[$status]++;
+                // $staffNames[$status][] = $staff_name;
+                $staffNames[$status][] = ['id' => $staff_id, 'name' => $staff_name];
+
             }
         }
 
@@ -2911,24 +2914,78 @@ class Team_management_model extends App_Model
     
     }
     
+    
     public function get_summary_ratio($date) {
         // Get total number of active staff
+        $this->db->select('staffid as staff_id, firstname'); // Added staff_id
+        $this->db->from('tblstaff');
         $this->db->where('active', 1);
-        $total_staff = $this->db->count_all_results('tblstaff');
+        $query_all_staff = $this->db->get();
         
+        $all_staff_names = $query_all_staff->result_array();
+        $total_staff = count($all_staff_names);
+    
         // Get the number of staff who have added summaries for the specific date
         $this->db->distinct();
-        $this->db->select('staff_id');
-        $this->db->where('date', $date);
+        $this->db->select('tbl_staff_summaries.staff_id, tblstaff.firstname');
         $this->db->from('tbl_staff_summaries');
-        $staff_with_summaries = $this->db->count_all_results();
+        $this->db->join('tblstaff', 'tblstaff.staffid = tbl_staff_summaries.staff_id', 'inner');
+        $this->db->where('date', $date);
+        $query_submitted = $this->db->get();
         
+        $staff_with_summaries = $query_submitted->num_rows();
+        $staff_names_and_ids = $query_submitted->result_array();
+    
         if ($total_staff == 0) {
             return 0; // Prevent division by zero
         }
         
-        return ['staff_with_summaries' => $staff_with_summaries, 'total_staff' => $total_staff]; // Round to two decimal places
+        // Fetch images here and include them in the return value if necessary
+        
+        return [
+            'staff_with_summaries' => $staff_with_summaries, 
+            'total_staff' => $total_staff,
+            'staff_names_and_ids' => $staff_names_and_ids,
+            'all_staff_names' => $all_staff_names,
+            // Include images here if necessary
+        ];
     }
+    
+    
+        // return ['staff_with_summaries' => $staff_with_summaries, 'total_staff' => $total_staff]; // Round to two decimal places
+    
+
+    // public function get_summary_ratio($date) {
+    //     // Get total number of active staff
+    //     $this->db->where('active', 1);
+    //     $total_staff = $this->db->count_all_results('tblstaff');
+        
+    //     // Get the IDs of staff who have added summaries for the specific date
+    //     $this->db->distinct();
+    //     $this->db->select('staff_id');
+    //     $this->db->where('date', $date);
+    //     $this->db->from('tbl_staff_summaries');
+    //     $query = $this->db->get();
+    //     $staff_ids_with_summaries = $query->result_array();  // This should give an array of staff_ids
+      
+    //     // Check if any summaries were submitted
+    //     if (empty($staff_ids_with_summaries)) {
+    //       return ['staff_with_summaries' => 0, 'staff_names_with_summaries' => [], 'total_staff' => $total_staff]; 
+    //     }
+      
+    //     // Fetch staff names based on those IDs
+    //     $this->db->where_in('id', array_column($staff_ids_with_summaries, 'staff_id'));
+    //     $this->db->from('tblstaff');
+    //     $query = $this->db->get();
+    //     $staff_names_with_summaries = $query->result_array();  // This should give an array of staff names
+      
+    //     if ($total_staff == 0) {
+    //         return 0; // Prevent division by zero
+    //     }
+        
+    //     return ['staff_with_summaries' => count($staff_ids_with_summaries), 'staff_names_with_summaries' => $staff_names_with_summaries, 'total_staff' => $total_staff]; 
+    //   }
+      
 
     public function get_monthly_attendance_stats($month, $year) {
         $num_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);

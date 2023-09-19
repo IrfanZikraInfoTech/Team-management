@@ -566,6 +566,7 @@ $(document).ready(function(){
         $('#modalContent').html("Staff ID: " + staffId);  // Populate the modal content
         $('#statsModal').data('staff-id', staffId);  // Set the staffId as a data attribute on the modal
         $('#statsModal').modal('show');  // Show the modal
+        $('#visualization').empty(); //add this line 
     });
 });
 
