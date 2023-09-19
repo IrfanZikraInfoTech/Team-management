@@ -563,13 +563,8 @@ $(document).ready(function(){
         var staffId = $(this).data('staff-id');  // Retrieve the staff_id from clicked element
         $('#modalContent').html("Staff ID: " + staffId);  // Populate the modal content
         $('#statsModal').data('staff-id', staffId);  // Set the staffId as a data attribute on the modal
-<<<<<<< Updated upstream
         $('#statsModal').modal('show');  // Show the modal
         $('#visualization').empty(); //add this line 
-=======
-        $('#statsModal').modal('show');
-        $('#visualization').empty();  //add this line 
->>>>>>> Stashed changes
     });
 });
 

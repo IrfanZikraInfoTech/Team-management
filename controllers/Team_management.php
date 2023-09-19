@@ -38,11 +38,21 @@ class Team_management extends AdminController {
         $flash_data = $this->team_management_model->flash_stats($date);
         $data['flash_stats'] = $flash_data['counters'];
         $data['flash_staff_names'] = $flash_data['staffNames'];
+        $all_staff_ids = $this->team_management_model->get_all_staff();
+
+        $staff_images = [];
+        foreach ($all_staff_ids as $staff) {
+            $staff_images[$staff->staffid] = staff_profile_image($staff->staffid, ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb');
+        }
+    
+        $data['staff_images'] = $staff_images;
+
         $data['monthly_stats'] = $this->team_management_model->get_monthly_attendance_stats($month, $year);
 
         $report_data = $this->team_management_model->get_daily_report_data(date('m'), date('d'));
         $data['report_data'] = $report_data;
-        $data['summary_ratio'] = $this->team_management_model->get_summary_ratio($date);
+        $data['summary_ratio'] = $this->team_management_model->get_summary_ratio_and_names($date);
+       
 
         $all_staff_ids = $this->team_management_model->get_all_staff();
 
