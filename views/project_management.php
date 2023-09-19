@@ -342,7 +342,7 @@ function setupTaskCreate(name, dummy_task_id){
 
         dummyTaskId = dummy_task_id;
 
-    }, 700);
+    }, 1500);
     
 }
 

@@ -17,7 +17,6 @@
       <!-- Create the container for the stats -->
       <div class="flex justify-between items-center p-4 gap-4">
 
-
       
          <!-- Present Card -->
          <div data-type="present" class="bg-white border-solid border-gray-200 hover:border-green-500 border-2 p-6 rounded-lg w-full shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all ease-in-out duration-300 cursor-pointer ">
@@ -337,15 +336,25 @@ new Chart(document.getElementById('summaryRatioChart'), {
   const imgElem = doc.querySelector("img");
   
   // Updating image attributes (Optional)
-  imgElem.width = 40;
-  imgElem.classList.add("mr-2");
+
 
   const nameElem = document.createElement("strong");
   nameElem.textContent = staff.name;
 
   const div = document.createElement("div");
+
+
+
+
   div.classList.add("inline-flex", "items-center");
+
+    
+  if(imgElem){
+    imgElem.width = 40;
+  imgElem.classList.add("mr-2");
   div.appendChild(imgElem);
+  }
+
   div.appendChild(nameElem);
 
   li.appendChild(div);

@@ -38,7 +38,7 @@ function formatTime($seconds) {
 
 <div id="snooze-indicator" class="absolute w-full min-h-full top-0 left-0 bg-[#000]/70 z-10" style="display:none;">
     <div class="flex w-full h-full justify-center items-center my-auto absolute">
-        <h3 class="text-xl text-white" style="font-family:monospace;">Tab is snoozed, Pls refresh ;)</h3>
+        <h3 class="text-xl text-white" style="font-family:monospace;">Tab is snoozed, Pls refresh ;</h3>
     </div>
 </div>
 

@@ -128,7 +128,14 @@ function formatShift($shiftNumer)
         </div>
 
         <div class="w-full p-5 my-5 bg-white shadow rounded p-4 col-span-2">
-            <h2 class="card-title ms-1 text-uppercase text-center mb-4" style="font-weight: bold; color: #343a40; letter-spacing: 1.5px;">Organizational Report</h2>
+            <div class="flex justify-between">
+                <h2 class="card-title ms-1 text-uppercase text-center mb-4 w-full" style="font-weight: bold; color: #343a40; letter-spacing: 1.5px;padding-left:80px;">Organizational Report</h2>
+                <h2 class="card-title ms-1 text-uppercase text-center mb-4 w-24" style="font-weight: bold; color: #343a40; letter-spacing: 1.5px;">
+                <?php
+                    echo convertSecondsToRoundedTime($report_data['all_daily_reports'][1]['total_loggable_hours']);
+                ?>
+                </h2>
+            </div>
             <div class="d-flex justify-content-center">
                 <canvas id="monthlyTimingsChart" style="width: 100%; height: 400px;"></canvas>
             </div>
@@ -268,7 +275,7 @@ function formatShift($shiftNumer)
 let actualTotalLoggedInTimeArray = [
     <?php 
         foreach($report_data['all_daily_reports'] as $day => $daily_report) {
-            $hours = $daily_report['actual_total_logged_in_time'] / 3600; // Convert seconds to hours
+            $hours = round($daily_report['actual_total_logged_in_time'] / 3600); // Convert seconds to hours
             echo $hours . ',';
         } 
     ?>

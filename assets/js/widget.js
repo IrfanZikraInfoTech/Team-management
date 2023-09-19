@@ -2,7 +2,18 @@ document.addEventListener('DOMContentLoaded', function () {
     
     //setTimeout(function(){
     
-    if (document.body.classList.contains('dashboard') && !document.body.classList.contains('team_management')) {
+    if (document.body.classList.contains('dashboard') && !document.body.classList.contains('team_management')&& !document.body.classList.contains('hr_profile')) {
+
+          
+  isVisible(function(){
+    if(!isVisible()) {
+      // Tab is not active, show the indicator
+      document.getElementById('snooze-indicator').style.display = 'block';
+    } else {
+      // Tab is active, hide the indicator
+      document.getElementById('snooze-indicator').style.display = 'none';
+    }
+  });
 
     
         
@@ -207,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 fetchStats();
                             } else {
-                                Swal.fire('Error!', 'Unable to clock out. Please try again.', 'error');
+                                Swal.fire('Error!', response.message, 'error');
                             }
                         }
                     };
@@ -555,14 +566,5 @@ var isVisible = (function() {
       return !document[stateKey];
     }
   })();
-  
-  isVisible(function(){
-    if(!isVisible()) {
-      // Tab is not active, show the indicator
-      document.getElementById('snooze-indicator').style.display = 'block';
-    } else {
-      // Tab is active, hide the indicator
-      document.getElementById('snooze-indicator').style.display = 'none';
-    }
-  });
+
   

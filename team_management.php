@@ -296,7 +296,7 @@ function widget()
     echo ';';
     
     echo '</script>';
-    echo '<script src="' . base_url('modules/team_management/assets/js/widget.js') . '?v=3.2.5"></script>';
+    echo '<script src="' . base_url('modules/team_management/assets/js/widget.js') . '?v=3.345"></script>';
 
 }
 

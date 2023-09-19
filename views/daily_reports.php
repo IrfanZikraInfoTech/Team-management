@@ -23,6 +23,31 @@ function formatShift($shiftNumer)
         return "All Day";
 }
 
+function calculate_project_progress($project_id, $date) {
+    $CI =& get_instance();
+   // print_r($project_id);
+    $CI->db->where(['rel_id'=>$project_id, 'rel_type'=>'project']);
+    $tasks = $CI->db->get('tbltasks')->result_array();
+
+    $total_tasks = count($tasks);
+    $completed_tasks = 0;
+    $completed_today = 0;
+    
+    foreach ($tasks as $task) {
+        if ($task['status'] == 5) {
+            $completed_tasks++;
+            if (date("Y-m-d", strtotime($task['datefinished'])) == $date) {
+                $completed_today++;
+            }
+        }
+    }
+
+    $overall_progress = ($total_tasks > 0) ? (($completed_tasks / $total_tasks) * 100) : 0;
+    $today_progress = ($total_tasks > 0) ? (($completed_today / $total_tasks) * 100) : 0;
+    $before_today_progress = $overall_progress - $today_progress;
+
+    return [$overall_progress, $today_progress, $before_today_progress];
+}
 
 ?>
 
@@ -231,7 +256,7 @@ function formatShift($shiftNumer)
 
         <!-- All Staff Members -->
         <div class="bg-white shadow rounded p-4 col-span-2">
-            <h2 class="text-xl font-semibold mb-4">Staff Members</h2>
+            <h2 class="text-xl font-bold mb-4">Staff Members</h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -313,52 +338,87 @@ function formatShift($shiftNumer)
         </div>
  
 
-        <!-- All Tasks Worked On -->
-        <div class="bg-white shadow rounded p-4 col-span-2">
-            <h2 class="text-xl font-semibold mb-4">All Tasks Worked On</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="text-sm font-medium text-gray-700">
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Name</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Worked by:</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Status</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Total worked time:</th>
-                            <th class="px-4 py-2 border-b-2 border-gray-200">Priority</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200 text-sm text-gray-600">
-                        <?php
+        <div class="bg-white p-8 col-span-2">
+            <h2 class="text-xl font-bold mb-8">All Projects Worked On</h2>
 
-                        foreach ($report_data['all_tasks_worked_on'] as $task): 
-    
+            <div class="grid grid-cols-3 gap-8">
+
+                <?php
+                    $first_element = array_shift($report_data['all_tasks_worked_on']);
+                    array_push($report_data['all_tasks_worked_on'], $first_element);
+
+                ?>
+
+                <?php foreach ($report_data['all_tasks_worked_on'] as $projectData): 
+                   
+
+                    if(!$projectData) {
+                        continue;
+                    }
+                    $projectId = $projectData['project_id'];
+                    ?>
+                <div class="w-full bg-gray-100 p-6 rounded-xl shadow-lg flex flex-col">
+                    <h3 class="text-2xl font-semibold mb-4"><?= ($projectData['project_name']) ?? 'Project-less tasks' ?></h3>
+                    <?php 
+                    
+                    
+                    
+                    foreach ($projectData['tasks'] as $task): ?>
+                    <div class="task-block bg-white p-4 mt-4 rounded-xl cursor-pointer border border-gray-200 border-solid transition-all hover:border-gray-500" data-task-id="<?= $task['id'] ?>">
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold"><?= $task['task_name'] ?></span>
+                            <span><?= format_task_status($task['task_status'])  ?></span>
+                        </div>
+                        <div class="task-details" style="display:none;">
+                            <hr class="my-4">
+                            <div class="flex flex-row gap-2 items-center">
+                                <div class="flex items-center space-x-2 w-full">
+                                    <?php foreach ($task['staff'] as $staff): ?>
+                                    <?= staff_profile_image($staff['staff_id'], ['w-10 h-10 rounded-full'], 'thumb') ?>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="text-xl items-center">
+                                    <?= convertSecondsToRoundedTime($task['total_worked_time']) ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+
+
+                    <div class="flex flex-col gap-2 pt-4 mt-auto">
+                        <?php list($overall_progress, $today_progress, $before_today_progress) = calculate_project_progress($projectId, $date); 
                         ?>
-                            <tr class="border-solid border-b border-gray-200">
+                        
+                        <div>
+                            <h6 class="text-sm text-right">Overall Project Progress</h6>
+                            <div class="bg-white w-full rounded-full group hover:border-blue-300 transition-all border border-solid border-gray-100">
+                                <div class="bg-blue-500 group-hover:bg-blue-400 transition-all text-xs py-1 px-2 rounded-full text-black" style="width:<?= $overall_progress ?>%;"><?= round($overall_progress) ?>%</div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h6 class="text-sm text-right">Progress Made at Day</h6>
+                            <div class="bg-white w-full rounded-full group hover:border-green-300 transition-all border border-solid border-gray-100">
+                                <div class="bg-green-500 group-hover:bg-green-400 transition-all text-xs py-1 px-2 rounded-full text-black" style="width:<?= $today_progress ?>%;"><?= round($today_progress) ?>%</div>
+                            </div>
+                        </div>
 
-                            <td class="px-4 py-2 align-top" style="max-width:400px;">
-                                <?php
-                                $projectNameSpan = '';
-                                if ($task['project_name'] !== null) {
-                                    $projectNameSpan = '<a target="_blank" href="' . admin_url() . 'projects/view/' . $task['rel_id'] . '" style="font-size:12px;">' . $task['project_name'] . '</a>';
-                                }
-                                echo '<div class="flex flex-col"><a target="_blank" href="' . admin_url() . 'tasks/view/' . $task['id'] . '">' . $task['task_name'] . '</a>' . $projectNameSpan . '</div>';
-                                ?>
-                            </td>
+                        <div>
+                            <h6 class="text-sm text-right">Progress Before Day</h6>
+                            <div class="bg-white w-full rounded-full group hover:border-yellow-300 transition-all border border-solid border-gray-100">
+                                <div class="bg-yellow-500 group-hover:bg-yellow-400 transition-all text-xs py-1 px-2 rounded-full text-black" style="width:<?= $before_today_progress ?>%;"><?= round($before_today_progress) ?>%</div>
+                            </div>
+                        </div>
+                    </div>
 
-                                <td class="px-4 py-2 flex flex-row gap-2">
-                                <?php foreach ($task['staff'] as $staff): ?>
-                                    <?= staff_profile_image($staff['staff_id'], ['w-10 h-full staff-profile-image-thumb'], 'thumb') ?>
-                                <?php endforeach; ?>
-                                </td>
-                                <td class="px-4 py-2 align-top"><?= format_task_status($task['task_status']) ?></td>
-                                <td class="px-4 py-2 align-top"><?= convertSecondsToRoundedTime($task['total_worked_time']) ?></td>
-                                <td class="px-4 py-2 align-top"><?= task_priority($task['priority']) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                </div>
+                <?php endforeach; ?>
             </div>
+
         </div>
+
+
 
 
         <!-- Day Summary -->
@@ -563,31 +623,30 @@ function formatShift($shiftNumer)
 $(document).ready(function(){
     $('.staff-div').on('click', function(){
         var staffId = $(this).data('staff-id');  // Retrieve the staff_id from clicked element
-        $('#modalContent').html("Staff ID: " + staffId);  // Populate the modal content
-        $('#statsModal').data('staff-id', staffId);  // Set the staffId as a data attribute on the modal
-        $('#statsModal').modal('show');  // Show the modal
-        $('#visualization').empty(); //add this line 
+        openModal(staffId);
     });
 });
 
-// Event listener for shown.bs.modal
-$('#statsModal').on('shown.bs.modal', function () {
-    var staffId = $(this).data('staff-id');  // Retrieve staffId from modal's data attribute
-    fetchDailyInfo(staffId);  // Call fetchDailyInfo function
-});
 
 function openModal(staffId) {
         $('#visualization').empty();
-
-        // Populate the modal content and open the modal
-        $('#modalContent').html("Staff ID: " + staffId);  
-        $('#statsModal').data('staff-id', staffId);  
-        $('#statsModal').modal('show');  
+        fetchDailyInfo(staffId);
     }
 
 
 
 function fetchDailyInfo(staff_id) {
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Fetching stats',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+
 const currentDate = new Date();
 const month = <?= $thisMonth; ?>;
 const day = <?= $thisDay; ?>;
@@ -614,6 +673,9 @@ $.ajax({
     },
     dataType: 'json',
     success: function (data) {
+
+        Swal.close();
+        
         console.log(data);
         console.log('Total clocked-in time:', data.total_clocked_in_time);
         console.log('Total shift duration:', data.total_shift_duration);
@@ -651,12 +713,6 @@ $.ajax({
         (tasks_rows != "") ? $('#tbl_tasks_activity').html(tasks_rows) : $('#tbl_tasks_activity').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
 
         (all_tasks_rows != "") ? $('#tbl_all_tasks').html(all_tasks_rows) : $('#tbl_all_tasks').html("<tr><td colspan='4' class='px-4 py-2'>No Data</td></tr>");
-
-        
-        var targetDiv = $('#stats-per-day'); // Replace 'your-target-div-id' with the actual div id
-        $('html, body').animate({
-            scrollTop: targetDiv.offset().top
-        }, 1000);
 
 
         var items = new vis.DataSet();
@@ -747,6 +803,8 @@ if (startDate && endDate) {
 } else {
   console.warn("Start and end dates not properly set");
 }
+
+    $('#statsModal').modal('show');  
     },
     error: function (jqXHR, textStatus, errorThrown) {
         console.error('Error fetching daily stats:', textStatus, errorThrown);
@@ -855,7 +913,7 @@ function generateAllTasksRows(entries, date) {
             `;
         }else{
             rows += `
-            <tr class="transition-all hover:`+hoverColor+`">
+            <tr class="transition-all hover:`+taskBG+`">
                 <td class="px-4 py-2">${(entry.task_id)}</td>
                 <td class="px-4 py-2 flex flex-col">
                     <a target="_blank" href="#" onclick="init_task_modal(${entry.task_id}); return false" class="text-sm">${entry.task_name}</a>
@@ -902,17 +960,20 @@ function generateAllTasksRows(entries, date) {
 
     <?php
     
-    $most_clock = ($report_data['most_clocked_in_staff_member']) ? ($report_data['most_clocked_in_staff_member']['firstname'] . ' ' . $report_data['most_clocked_in_staff_member']['lastname']) : 'None';
-    $most_eff = ($report_data['most_eff_staff_member']) ? $report_data['most_eff_staff_member']->firstname . ' ' . $report_data['most_eff_staff_member']->lastname : 'None';
+$most_clock = (isset($report_data['most_clocked_in_staff_member']['firstname']) && isset($report_data['most_clocked_in_staff_member']['lastname'])) ? ($report_data['most_clocked_in_staff_member']['firstname'] . ' ' . $report_data['most_clocked_in_staff_member']['lastname']) : 'None';
 
-    $on_timers = $report_data['on_timers'];
-    $on_timers_names = array_map(function($timer) { return $timer->firstname.' '.$timer->lastname; }, $on_timers);
-    $on_timers_string = implode(', ', $on_timers_names);
+$most_eff = (isset($report_data['most_eff_staff_member']->firstname) && isset($report_data['most_eff_staff_member']->lastname)) ? $report_data['most_eff_staff_member']->firstname . ' ' . $report_data['most_eff_staff_member']->lastname : 'None';
 
-    $late_timers = $report_data['late_joiners'];
-    $late_joiners_names = array_map(function($joiner) { return $joiner->firstname.' '.$joiner->lastname; }, $late_timers);
-    $late_joiners_string = implode(', ', $late_joiners_names);
-    ?>
+$on_timers = $report_data['on_timers'];
+$on_timers_names = array_map(function($timer) { return (isset($timer->firstname) && isset($timer->lastname)) ? $timer->firstname . ' ' . $timer->lastname : 'Unknown'; }, $on_timers);
+$on_timers_string = implode(', ', $on_timers_names);
+
+$late_timers = $report_data['late_joiners'];
+$late_joiners_names = array_map(function($joiner) { return (isset($joiner->firstname) && isset($joiner->lastname)) ? $joiner->firstname . ' ' . $joiner->lastname : 'Unknown'; }, $late_timers);
+$late_joiners_string = implode(', ', $late_joiners_names);
+
+?>
+
 
     $.ajax({
         url: admin_url + 'team_management/generate_daily_summary',
@@ -965,13 +1026,16 @@ function generateAllTasksRows(entries, date) {
     // Process timings data and update the hoursArray
     timingsArray.forEach(time => {
         let [start, end] = time.split(' - ');
-        let startHour = to24Hour(start);
-        let endHour = to24Hour(end);
+        if(start && end){
+            let startHour = to24Hour(start);
+            let endHour = to24Hour(end);
 
-        // Increment each hour between start and end by 1
-        for (let i = startHour; i <= endHour; i++) {
-            hoursArray[i]++;
+            // Increment each hour between start and end by 1
+            for (let i = startHour; i <= endHour; i++) {
+                hoursArray[i]++;
+            }
         }
+        
     });
 
     // Chart
@@ -1035,6 +1099,14 @@ function changeReport() {
     window.location.href = "<?=admin_url('team_management/daily_reports')?>/" + selectedMonth + "/" + selectedDay;
 
 }
+
+$(document).ready(function() {
+    $('.task-block').on('click', function() {
+        const taskId = $(this).data('task-id');
+        $(this).find('.task-details').toggle('fast');
+    });
+});
+
 </script>
 </body>
 </html>

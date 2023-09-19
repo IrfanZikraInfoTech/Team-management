@@ -443,6 +443,20 @@ class Team_management_model extends App_Model
         $now = date('Y-m-d H:i:s');
         $now_timestamp = time(); // Get the current Unix timestamp
 
+        // Find the clock_in date for the latest open session
+        $this->db->select('clock_in');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('clock_out IS NULL', null, false);
+        $query = $this->db->get(db_prefix().'_staff_time_entries');
+        $row = $query->row();
+
+        if (isset($row)) {
+            $clock_in_date = date("Y-m-d", strtotime($row->clock_in));
+            if (!$this->team_management_model->get_staff_summary($staff_id, $clock_in_date)) {
+                return json_encode(['success' => false, 'message' => "Please add your summary first."]);
+            }
+        }
+
         // Stop the task timer for the staff member if there's any active timer
         $this->db->set('end_time', $now_timestamp);
         $this->db->where('staff_id', $staff_id);
@@ -455,8 +469,9 @@ class Team_management_model extends App_Model
         $this->db->where('clock_out IS NULL', null, false);
         $this->db->update(db_prefix().'_staff_time_entries');
 
-        return $this->db->affected_rows() > 0;
+        return json_encode(['success' => $this->db->affected_rows() > 0, 'message' => "Successfully clocked out"]);
     }
+
 
 
     public function update_status($staff_id, $status)
@@ -1775,15 +1790,6 @@ class Team_management_model extends App_Model
         $query = $this->db->get();
         $daywise_shifts = $query->result_array();
         
-        // Processing day-wise shifts
-
-        // $daywise_shift_data = [];
-        // foreach ($daywise_shifts as $shift) {
-        //     $staff_id = $shift['staff_id'];
-        //     $daywise_shift_data[$staff_id]['start_time'] = $shift['shift_start_time'];
-        //     $daywise_shift_data[$staff_id]['end_time'] = $shift['shift_end_time'];
-        // }
-        // $report_data['shift_timings_daywise'] = $daywise_shift_data;
         $daywise_shift_data = [];
         foreach ($daywise_shifts as $shift) {
             $staff_id = $shift['staff_id'];
@@ -1809,8 +1815,13 @@ class Team_management_model extends App_Model
                 $clock_times[$staff_id] = [];
             }
             
-            if (isset($clock_in['clock_in']) && isset($clock_in['clock_out'])) {
-                $clock_times[$staff_id][] = date('h:i A', strtotime($clock_in['clock_in'])) . ' - ' . date('h:i A', strtotime($clock_in['clock_out']));
+            if (isset($clock_in['clock_in'])) {
+                if(isset($clock_in['clock_out'])){
+                    $clock_times[$staff_id][] = date('h:i A', strtotime($clock_in['clock_in'])) . ' - ' . date('h:i A', strtotime($clock_in['clock_out']));
+                }else{
+                    $clock_times[$staff_id][] = date('h:i A', strtotime($clock_in['clock_in'])) . ' - ' . date('h:i A');
+                }
+                
             }
         }
         
@@ -1924,25 +1935,32 @@ class Team_management_model extends App_Model
 
         $report_data['absentees'] = $absent_staff;
 
-
-        // All Tasks Worked On
+        // Fetch all tasks worked on, grouped by projects
         $this->db->select('*, SUM(TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(start_time), FROM_UNIXTIME(end_time))) as total_worked_time');
         $this->db->select('IF('.db_prefix().'tasks.rel_type="project", '.db_prefix().'projects.name, NULL) as project_name', false);
-        $this->db->select('IF('.db_prefix().'tasks.rel_type="project", '.db_prefix().'projects.id, NULL) as project_id', false);
+        $this->db->select(db_prefix().'tasks.rel_id as project_task_id');
         $this->db->select(db_prefix().'tasks.name as task_name');
         $this->db->select(db_prefix().'tasks.status as task_status');
-        $this->db->distinct();
         $this->db->from(db_prefix() . 'taskstimers');
         $this->db->where('DATE(FROM_UNIXTIME(start_time))', $date);
         $this->db->join(db_prefix() . 'tasks', db_prefix() . 'tasks.id = ' . db_prefix() . 'taskstimers.task_id');
         $this->db->join(db_prefix() . 'projects', db_prefix() . 'projects.id = ' . db_prefix() . 'tasks.rel_id AND '.db_prefix().'tasks.rel_type = "project"', 'left');
-        $this->db->group_by(db_prefix() . 'taskstimers.task_id');
+        $this->db->group_by(db_prefix() . 'projects.id, '.db_prefix().'taskstimers.task_id');
         $query = $this->db->get();
-        $report_data['all_tasks_worked_on'] = $query->result_array();
+        $tasks = $query->result_array();
 
-        foreach ($report_data['all_tasks_worked_on'] as &$task) {
+        // Group tasks by their project IDs
+        $groupedTasks = [];
+        foreach($tasks as $task) {
+            $projectId = $task['project_task_id'];
+
             $task['staff'] = $this->get_staff_members_for_task($task['task_id'], $date);
+            $groupedTasks[$projectId]['project_name'] = $task['project_name'];
+            $groupedTasks[$projectId]['tasks'][] = $task;
+            $groupedTasks[$projectId]['project_id'] = $projectId;
         }
+        $report_data['all_tasks_worked_on'] = $groupedTasks;
+
 
 
 
@@ -2867,7 +2885,7 @@ class Team_management_model extends App_Model
     
 
     public function flash_stats($date) {
-        // Initialize counters for each status category
+        // Initialize counters and staff name arrays for each status category
         $counters = [
             'leave' => 0,
             'absent' => 0,
@@ -2888,17 +2906,19 @@ class Team_management_model extends App_Model
         $this->db->where('active', 1);
         $query = $this->db->get();
         $active_staff = $query->result_array();
-    
+        
         // Step 2: Loop through active staff members to check their statuses
         foreach ($active_staff as $staff) {
             $staff_id = $staff['staffid'];
+            $staff_name = $staff['firstname'];
     
             // Check if staff is on leave
             if ($this->is_on_leave($staff_id, $date)) {
                 $counters['leave']++;
+                $staffNames['leave'][] = ['id' => $staff_id, 'name' => $staff_name];
                 continue;
             }
-    
+        
             // Use the check_staff_late function to get the status
             $result = $this->check_staff_late($staff_id, $date);
             if (isset($result['status'])) {
@@ -2909,11 +2929,10 @@ class Team_management_model extends App_Model
 
             }
         }
-
+        // return $counters;
         return ['counters' => $counters, 'staffNames' => $staffNames];
-    
     }
-    
+
     
     public function get_summary_ratio($date) {
         // Get total number of active staff
@@ -2950,7 +2969,44 @@ class Team_management_model extends App_Model
             // Include images here if necessary
         ];
     }
+
+    public function get_summary_ratio_and_names($date) {
+        // Get total number of active staff
+        $this->db->select('staffid as staff_id, firstname'); // Added staff_id
+        $this->db->from('tblstaff');
+        $this->db->where('active', 1);
+        $query_all_staff = $this->db->get();
+        
+        $all_staff_names = $query_all_staff->result_array();
+        $total_staff = count($all_staff_names);
     
+        // Get the number of staff who have added summaries for the specific date
+        $this->db->distinct();
+        $this->db->select('tbl_staff_summaries.staff_id, tblstaff.firstname');
+        $this->db->from('tbl_staff_summaries');
+        $this->db->join('tblstaff', 'tblstaff.staffid = tbl_staff_summaries.staff_id', 'inner');
+        $this->db->where('date', $date);
+        $query_submitted = $this->db->get();
+        
+        $staff_with_summaries = $query_submitted->num_rows();
+        $staff_names_and_ids = $query_submitted->result_array();
+    
+        if ($total_staff == 0) {
+            return 0; // Prevent division by zero
+        }
+        
+        // Fetch images here and include them in the return value if necessary
+        
+        return [
+            'staff_with_summaries' => $staff_with_summaries, 
+            'total_staff' => $total_staff,
+            'staff_names_and_ids' => $staff_names_and_ids,
+            'all_staff_names' => $all_staff_names,
+            // Include images here if necessary
+        ];
+    }
+
+
     
         // return ['staff_with_summaries' => $staff_with_summaries, 'total_staff' => $total_staff]; // Round to two decimal places
     

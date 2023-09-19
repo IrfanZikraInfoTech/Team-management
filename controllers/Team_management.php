@@ -33,17 +33,30 @@ class Team_management extends AdminController {
     {
         $year = date('Y');  // Define year here
 
-    if ($month === null || $day === null) {
-        $date = date('Y-m-d');
-        $month = date('m');
-        $day = date('d');
-    } else {
-        $date = date('Y') . '-' . $month . '-' . $day;
+        if ($month === null && $day === null) {
+            $date = date('Y-m-d');
+            $month = date('m');
+            $day = date('d');
+        } else {
+            $date = date('Y') . '-' . $month . '-' . $day;
 
-    }
+        }
         $data['selected_date'] = $date; 
     
-        $data['flash_stats'] = $this->team_management_model->flash_stats($date);
+        $flash_data = $this->team_management_model->flash_stats($date);
+        $data['flash_stats'] = $flash_data['counters'];
+        $data['flash_staff_names'] = $flash_data['staffNames'];
+        $all_staff_ids = $this->team_management_model->get_all_staff();
+
+
+
+        $staff_images = [];
+        foreach ($all_staff_ids as $staff) {
+            $staff_images[$staff->staffid] = staff_profile_image($staff->staffid, ['border-2 border-solid object-cover w-12 h-12 staff-profile-image-thumb'], 'thumb');
+        }
+    
+        $data['staff_images'] = $staff_images;
+
         $data['monthly_stats'] = $this->team_management_model->get_monthly_attendance_stats($month, $year);
 
         $report_data = $this->team_management_model->get_daily_report_data(date('m'), date('d'));
@@ -59,7 +72,6 @@ class Team_management extends AdminController {
         }
 
         $data['staff_task_stats'] = $staff_task_stats;
-
         $this->load->view('team_dashboard', $data);
     }
 
@@ -93,17 +105,6 @@ class Team_management extends AdminController {
     {
         echo $now = date('Y-m-d H:i:s');
         echo '<br>';
-
-        // Clock out the staff member by updating the latest open session
-        //$this->db->set('clock_out', $now);
-        //$this->db->where('staff_id', 19);
-        //$this->db->where('clock_out IS NULL', null, false);
-        //$this->db->update(db_prefix().'_staff_time_entries');
-
-        //return $this->db->affected_rows() > 0;
-
-        //echo $this->team_management_model->test_query("ALTER TABLE tbl_applications ADD COLUMN shift ENUM('1', '2', 'all') DEFAULT 'all' AFTER end_date;");
-        //echo $this->team_management_model->test_query("ALTER TABLE tbl_staff_leaves ADD COLUMN shift ENUM('1', '2', 'all') DEFAULT 'all' AFTER end_date;");
     }
 
     public function staff_shifts() {
@@ -189,33 +190,6 @@ class Team_management extends AdminController {
         $this->load->view('staff_stats', $data);
     }
 
-    // public function daily_reports($month, $day)
-    // {
-        
-    //     $report_data = $this->team_management_model->get_daily_report_data($month, $day);
-
-    //     // Pass the data to your view
-    //     $data['report_data'] = $report_data;
-
-    //     $day_summary = $this->team_management_model->get_day_summary(date('Y') . '-' . $month . '-' . $day);
-    //     $data['day_summary'] = $day_summary ? $day_summary->summary : '';
-
-    //     if (!has_permission('team_management', '', 'admin') && !$day_summary) {
-    //         //access_denied('No Report Found!');
-    //     }
-        
-    //     $data['date'] = date('Y') . '-' . $month . '-' . $day;
-
-    //     $summaries = $this->team_management_model->get_staff_summaries(date('Y') . '-' . $month . '-' . $day);
-
-    //     // Pass the summaries to the view
-    //     $data['summaries'] = $summaries;
-
-    //     $data['thisMonth'] = $month;
-    //     $data['thisDay'] = $day;
-
-    //     $this->load->view('daily_reports', $data);
-    // }
     public function daily_reports($month, $day)
     {
         
@@ -1036,9 +1010,11 @@ class Team_management extends AdminController {
     public function clock_out()
     {
         $staff_id = ($this->input->post('staff_id') == null) ? $this->session->userdata('staff_user_id') : $this->input->post('staff_id');
+    
+        
         $clock_out_result = $this->team_management_model->clock_out($staff_id);
 
-        if ($clock_out_result) {
+        if ($clock_out_result['success']) {
 
 
             // format the date for readability
@@ -1052,7 +1028,7 @@ class Team_management extends AdminController {
             
         }
 
-        echo json_encode(['success' => $clock_out_result]);
+        echo json_encode($clock_out_result);
     }
 
     public function update_status()
