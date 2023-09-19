@@ -29,15 +29,21 @@ class Team_management extends AdminController {
     }
     
 
-    public function dashboard()
+    public function dashboard($month = null, $day = null)
     {
-        $date = $this->input->post('date') ?? date("Y-m-d");
-        $month = date("m");
-        $year = date("Y");
+        $year = date('Y');  // Define year here
 
-        $flash_data = $this->team_management_model->flash_stats($date);
-        $data['flash_stats'] = $flash_data['counters'];
-        $data['flash_staff_names'] = $flash_data['staffNames'];
+    if ($month === null || $day === null) {
+        $date = date('Y-m-d');
+        $month = date('m');
+        $day = date('d');
+    } else {
+        $date = date('Y') . '-' . $month . '-' . $day;
+
+    }
+        $data['selected_date'] = $date; 
+    
+        $data['flash_stats'] = $this->team_management_model->flash_stats($date);
         $data['monthly_stats'] = $this->team_management_model->get_monthly_attendance_stats($month, $year);
 
         $report_data = $this->team_management_model->get_daily_report_data(date('m'), date('d'));
@@ -52,12 +58,9 @@ class Team_management extends AdminController {
         }
 
         $data['staff_task_stats'] = $staff_task_stats;
+
         $this->load->view('team_dashboard', $data);
-
     }
-
-
-
 
     public function team_stats()
     {

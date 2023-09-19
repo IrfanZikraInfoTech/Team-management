@@ -2866,45 +2866,8 @@ class Team_management_model extends App_Model
     }
     
 
-    // public function flash_stats($date) {
-    //     // Initialize counters for each status category
-    //     $counters = [
-    //         'leave' => 0,
-    //         'absent' => 0,
-    //         'present' => 0,
-    //         'late' => 0
-    //     ];
-    
-    //     // Step 1: Select all active staff members
-    //     $this->db->select('staffid');
-    //     $this->db->from('tblstaff');
-    //     $this->db->where('active', 1);
-    //     $query = $this->db->get();
-    //     $active_staff = $query->result_array();
-    
-    //     // Step 2: Loop through active staff members to check their statuses
-    //     foreach ($active_staff as $staff) {
-    //         $staff_id = $staff['staffid'];
-    
-    //         // Check if staff is on leave
-    //         if ($this->is_on_leave($staff_id, $date)) {
-    //             $counters['leave']++;
-    //             continue;
-    //         }
-    
-    //         // Use the check_staff_late function to get the status
-    //         $result = $this->check_staff_late($staff_id, $date);
-    //         if (isset($result['status'])) {
-    //             $status = $result['status'];
-    //             $counters[$status]++;
-    //         }
-    //     }
-    
-    //     return $counters;
-    // }
-
     public function flash_stats($date) {
-        // Initialize counters and staff name arrays for each status category
+        // Initialize counters for each status category
         $counters = [
             'leave' => 0,
             'absent' => 0,
@@ -2925,31 +2888,28 @@ class Team_management_model extends App_Model
         $this->db->where('active', 1);
         $query = $this->db->get();
         $active_staff = $query->result_array();
-        
+    
         // Step 2: Loop through active staff members to check their statuses
         foreach ($active_staff as $staff) {
             $staff_id = $staff['staffid'];
-            $staff_name = $staff['firstname'];
     
             // Check if staff is on leave
             if ($this->is_on_leave($staff_id, $date)) {
                 $counters['leave']++;
-                $staffNames['leave'][] = $staff_name;
                 continue;
             }
-        
+    
             // Use the check_staff_late function to get the status
             $result = $this->check_staff_late($staff_id, $date);
             if (isset($result['status'])) {
                 $status = $result['status'];
                 $counters[$status]++;
-                $staffNames[$status][] = $staff_name;
             }
         }
-        // return $counters;
+
         return ['counters' => $counters, 'staffNames' => $staffNames];
-    }
     
+    }
     
     public function get_summary_ratio($date) {
         // Get total number of active staff
